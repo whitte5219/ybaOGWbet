@@ -1400,7 +1400,7 @@
                 }
                 
                 // Check if account exists and token matches
-                const accountData = localStorage.getItem(`ogwXbet_${username}`);
+                const accountData = getAccountData(username);
                 
                 if (!accountData) {
                     loginStatus.textContent = 'Account not found. Please create an account first.';
@@ -1408,9 +1408,7 @@
                     return;
                 }
                 
-                const parsedData = JSON.parse(accountData);
-                
-                if (parsedData.token !== token) {
+                if (accountData.token !== token) {
                     loginStatus.textContent = 'Invalid token. Please check and try again.';
                     loginStatus.className = 'status error';
                     return;
@@ -1425,7 +1423,7 @@
                 sessionStorage.setItem('ogwXbet_loginTime', new Date().getTime());
                 
                 // Check if user is moderator
-                isModerator = parsedData.isModerator || false;
+                isModerator = accountData.isModerator || false;
                 
                 // Show dashboard after a short delay
                 setTimeout(() => {
@@ -1446,7 +1444,7 @@
                 if (!username) return;
                 
                 // Get account data
-                const accountData = JSON.parse(localStorage.getItem(`ogwXbet_${username}`));
+                const accountData = getAccountData(username);
                 if (!accountData || !accountData.webhook) {
                     tokenStatus.textContent = 'Error: Could not find your webhook information.';
                     tokenStatus.className = 'status error';
@@ -1638,6 +1636,24 @@
                 }, 5000);
             }
             
+            function getAccountData(username) {
+                try {
+                    const accountData = localStorage.getItem(`ogwXbet_${username}`);
+                    if (!accountData) return null;
+                    
+                    // Check if it's already a parsed object (shouldn't happen but just in case)
+                    if (typeof accountData === 'object') {
+                        return accountData;
+                    }
+                    
+                    // Try to parse as JSON
+                    return JSON.parse(accountData);
+                } catch (error) {
+                    console.error('Error parsing account data:', error);
+                    return null;
+                }
+            }
+            
             function initializeSampleData() {
                 // Initialize events if not exists
                 if (!localStorage.getItem('ogwXbet_events')) {
@@ -1698,7 +1714,7 @@
                     
                     if (now - parseInt(loginTime) < sessionDuration) {
                         // Get account data to check moderator status
-                        const accountData = JSON.parse(localStorage.getItem(`ogwXbet_${currentUser}`) || '{}');
+                        const accountData = getAccountData(currentUser) || {};
                         isModerator = accountData.isModerator || false;
                         
                         showDashboard(currentUser);
@@ -1764,7 +1780,7 @@
                 const username = sessionStorage.getItem('ogwXbet_currentUser');
                 if (!username) return;
                 
-                const accountData = JSON.parse(localStorage.getItem(`ogwXbet_${username}`));
+                const accountData = getAccountData(username);
                 if (!accountData) return;
                 
                 // Update account information
@@ -1838,33 +1854,45 @@
                 
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    if (key.startsWith('ogwXbet_') && key !== 'ogwXbet_events') {
-                        userCount++;
-                        const accountData = JSON.parse(localStorage.getItem(key));
-                        const username = key.replace('ogwXbet_', '');
-                        const bets = accountData.bets || [];
-                        totalBetsCount += bets.length;
-                        
-                        accountsHTML += `
-                            <tr>
-                                <td>${username}</td>
-                                <td>${new Date(accountData.creationDate).toLocaleDateString()}</td>
-                                <td>${bets.length}</td>
-                                <td>${accountData.isModerator ? '<span class="moderator-badge">MODERATOR</span>' : 'User'}</td>
-                            </tr>
-                        `;
+                    if (key && key.startsWith('ogwXbet_') && key !== 'ogwXbet_events') {
+                        try {
+                            userCount++;
+                            const accountData = getAccountData(key.replace('ogwXbet_', ''));
+                            if (!accountData) continue;
+                            
+                            const username = key.replace('ogwXbet_', '');
+                            const bets = accountData.bets || [];
+                            totalBetsCount += bets.length;
+                            
+                            accountsHTML += `
+                                <tr>
+                                    <td>${username}</td>
+                                    <td>${new Date(accountData.creationDate).toLocaleDateString()}</td>
+                                    <td>${bets.length}</td>
+                                    <td>${accountData.isModerator ? '<span class="moderator-badge">MODERATOR</span>' : 'User'}</td>
+                                </tr>
+                            `;
+                        } catch (error) {
+                            console.error('Error processing account:', key, error);
+                        }
                     }
                 }
                 
                 // Update admin stats
                 totalUsers.textContent = userCount;
                 
-                const events = JSON.parse(localStorage.getItem('ogwXbet_events') || '[]');
-                totalEvents.textContent = events.length;
-                
-                // Count active bets (for now, we'll use a placeholder)
-                const activeBetsCount = events.filter(event => event.category === 'active').length * 5; // Placeholder
-                activeBets.textContent = activeBetsCount;
+                try {
+                    const events = JSON.parse(localStorage.getItem('ogwXbet_events') || '[]');
+                    totalEvents.textContent = events.length;
+                    
+                    // Count active bets (for now, we'll use a placeholder)
+                    const activeBetsCount = events.filter(event => event.category === 'active').length * 5; // Placeholder
+                    activeBets.textContent = activeBetsCount;
+                } catch (error) {
+                    console.error('Error loading events:', error);
+                    totalEvents.textContent = '0';
+                    activeBets.textContent = '0';
+                }
                 
                 totalBetsAdmin.textContent = totalBetsCount;
                 
@@ -1877,69 +1905,83 @@
             }
             
             function loadEvents() {
-                const events = JSON.parse(localStorage.getItem('ogwXbet_events') || '[]');
-                
-                // Clear existing events
-                upcomingEvents.innerHTML = '';
-                activeEvents.innerHTML = '';
-                endedEvents.innerHTML = '';
-                
-                if (events.length === 0) {
-                    const emptyHTML = `
+                try {
+                    const events = JSON.parse(localStorage.getItem('ogwXbet_events') || '[]');
+                    
+                    // Clear existing events
+                    upcomingEvents.innerHTML = '';
+                    activeEvents.innerHTML = '';
+                    endedEvents.innerHTML = '';
+                    
+                    if (events.length === 0) {
+                        const emptyHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-times"></i>
+                                <h3>No Events Available</h3>
+                                <p>Check back later for OGW events.</p>
+                            </div>
+                        `;
+                        upcomingEvents.innerHTML = emptyHTML;
+                        activeEvents.innerHTML = emptyHTML;
+                        endedEvents.innerHTML = emptyHTML;
+                        return;
+                    }
+                    
+                    // Sort events by date
+                    events.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    
+                    // Group events by category
+                    const upcoming = events.filter(event => event.category === 'upcoming');
+                    const active = events.filter(event => event.category === 'active');
+                    const ended = events.filter(event => event.category === 'ended');
+                    
+                    // Display events
+                    displayEvents(upcoming, upcomingEvents);
+                    displayEvents(active, activeEvents);
+                    displayEvents(ended, endedEvents);
+                    
+                    // Show empty state if no events in category
+                    if (upcoming.length === 0) {
+                        upcomingEvents.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-times"></i>
+                                <h3>No Upcoming Events</h3>
+                                <p>Check back later for upcoming OGW events.</p>
+                            </div>
+                        `;
+                    }
+                    
+                    if (active.length === 0) {
+                        activeEvents.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-times"></i>
+                                <h3>No Active Events</h3>
+                                <p>There are currently no active OGW events.</p>
+                            </div>
+                        `;
+                    }
+                    
+                    if (ended.length === 0) {
+                        endedEvents.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-times"></i>
+                                <h3>No Ended Events</h3>
+                                <p>Check back later for completed OGW events.</p>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Error loading events:', error);
+                    const errorHTML = `
                         <div class="empty-state">
-                            <i class="fas fa-calendar-times"></i>
-                            <h3>No Events Available</h3>
-                            <p>Check back later for OGW events.</p>
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h3>Error Loading Events</h3>
+                            <p>There was an error loading events. Please try refreshing the page.</p>
                         </div>
                     `;
-                    upcomingEvents.innerHTML = emptyHTML;
-                    activeEvents.innerHTML = emptyHTML;
-                    endedEvents.innerHTML = emptyHTML;
-                    return;
-                }
-                
-                // Sort events by date
-                events.sort((a, b) => new Date(a.date) - new Date(b.date));
-                
-                // Group events by category
-                const upcoming = events.filter(event => event.category === 'upcoming');
-                const active = events.filter(event => event.category === 'active');
-                const ended = events.filter(event => event.category === 'ended');
-                
-                // Display events
-                displayEvents(upcoming, upcomingEvents);
-                displayEvents(active, activeEvents);
-                displayEvents(ended, endedEvents);
-                
-                // Show empty state if no events in category
-                if (upcoming.length === 0) {
-                    upcomingEvents.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-calendar-times"></i>
-                            <h3>No Upcoming Events</h3>
-                            <p>Check back later for upcoming OGW events.</p>
-                        </div>
-                    `;
-                }
-                
-                if (active.length === 0) {
-                    activeEvents.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-calendar-times"></i>
-                            <h3>No Active Events</h3>
-                            <p>There are currently no active OGW events.</p>
-                        </div>
-                    `;
-                }
-                
-                if (ended.length === 0) {
-                    endedEvents.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-calendar-times"></i>
-                            <h3>No Ended Events</h3>
-                            <p>Check back later for completed OGW events.</p>
-                        </div>
-                    `;
+                    upcomingEvents.innerHTML = errorHTML;
+                    activeEvents.innerHTML = errorHTML;
+                    endedEvents.innerHTML = errorHTML;
                 }
             }
             
