@@ -117,7 +117,7 @@
             font-weight: 500;
         }
 
-        input {
+        input, select {
             width: 100%;
             padding: 12px 15px;
             background-color: rgba(255, 255, 255, 0.08);
@@ -128,7 +128,7 @@
             transition: var(--transition);
         }
 
-        input:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
@@ -1128,7 +1128,7 @@
                             <div class="admin-stat-label">Active Bets</div>
                         </div>
                         <div class="admin-stat">
-                            <div class="admin-stat-value" id="total-bets">0</div>
+                            <div class="admin-stat-value" id="total-bets-admin">0</div>
                             <div class="admin-stat-label">Total Bets</div>
                         </div>
                     </div>
@@ -1251,7 +1251,7 @@
             const totalUsers = document.getElementById('total-users');
             const totalEvents = document.getElementById('total-events');
             const activeBets = document.getElementById('active-bets');
-            const totalBetsAdmin = document.getElementById('total-bets');
+            const totalBetsAdmin = document.getElementById('total-bets-admin');
             const accountsTableBody = document.getElementById('accounts-table-body');
             const eventStatus = document.getElementById('event-status');
             
@@ -1264,6 +1264,9 @@
             let generatedToken = null;
             let currentUsername = null;
             let isModerator = false;
+            
+            // Initialize sample data if not exists
+            initializeSampleData();
             
             // Check if user is already logged in
             checkLoginStatus();
@@ -1551,6 +1554,9 @@
                 // Update events display
                 loadEvents();
                 
+                // Update admin stats
+                updateAdminInfo();
+                
                 // Auto-hide success message
                 setTimeout(() => {
                     eventStatus.className = 'status';
@@ -1630,6 +1636,42 @@
                 setTimeout(() => {
                     statusMessage.className = 'status';
                 }, 5000);
+            }
+            
+            function initializeSampleData() {
+                // Initialize events if not exists
+                if (!localStorage.getItem('ogwXbet_events')) {
+                    const sampleEvents = [
+                        {
+                            id: '1',
+                            title: 'OGW Championship Finals',
+                            teamA: 'Alpha Squad',
+                            teamB: 'Beta Brigade',
+                            date: '2023-12-15T20:00:00',
+                            category: 'upcoming',
+                            oddsA: 2.10,
+                            oddsDraw: 3.25,
+                            oddsB: 2.80,
+                            createdBy: 'System',
+                            createdAt: new Date().toISOString()
+                        },
+                        {
+                            id: '2',
+                            title: 'Winter Showdown',
+                            teamA: 'Cold Fusion',
+                            teamB: 'Firestorm',
+                            date: '2023-12-18T18:30:00',
+                            category: 'upcoming',
+                            oddsA: 1.85,
+                            oddsDraw: 3.40,
+                            oddsB: 3.75,
+                            createdBy: 'System',
+                            createdAt: new Date().toISOString()
+                        }
+                    ];
+                    
+                    localStorage.setItem('ogwXbet_events', JSON.stringify(sampleEvents));
+                }
             }
             
             function checkLoginStatus() {
@@ -1803,8 +1845,14 @@
                 
                 // Update admin stats
                 totalUsers.textContent = userCount;
-                totalEvents.textContent = JSON.parse(localStorage.getItem('ogwXbet_events') || '[]').length;
-                activeBets.textContent = '0'; // This would need to be calculated based on active bets
+                
+                const events = JSON.parse(localStorage.getItem('ogwXbet_events') || '[]');
+                totalEvents.textContent = events.length;
+                
+                // Count active bets (for now, we'll use a placeholder)
+                const activeBetsCount = events.filter(event => event.category === 'active').length * 5; // Placeholder
+                activeBets.textContent = activeBetsCount;
+                
                 totalBetsAdmin.textContent = totalBetsCount;
                 
                 // Update accounts table
@@ -1926,41 +1974,6 @@
                 });
                 
                 container.innerHTML = eventsHTML;
-            }
-            
-            // Initialize events on page load
-            if (!localStorage.getItem('ogwXbet_events')) {
-                // Add some sample events
-                const sampleEvents = [
-                    {
-                        id: '1',
-                        title: 'OGW Championship Finals',
-                        teamA: 'Alpha Squad',
-                        teamB: 'Beta Brigade',
-                        date: '2023-12-15T20:00:00',
-                        category: 'upcoming',
-                        oddsA: 2.10,
-                        oddsDraw: 3.25,
-                        oddsB: 2.80,
-                        createdBy: 'System',
-                        createdAt: new Date().toISOString()
-                    },
-                    {
-                        id: '2',
-                        title: 'Winter Showdown',
-                        teamA: 'Cold Fusion',
-                        teamB: 'Firestorm',
-                        date: '2023-12-18T18:30:00',
-                        category: 'upcoming',
-                        oddsA: 1.85,
-                        oddsDraw: 3.40,
-                        oddsB: 3.75,
-                        createdBy: 'System',
-                        createdAt: new Date().toISOString()
-                    }
-                ];
-                
-                localStorage.setItem('ogwXbet_events', JSON.stringify(sampleEvents));
             }
         });
     </script>
