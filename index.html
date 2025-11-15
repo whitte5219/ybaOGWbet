@@ -1,81 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Roblox Verification</title>
+  <title>Discord Webhook Verification</title>
   <style>
     body { font-family: Arial; padding: 20px; }
-    input { padding: 6px; font-size: 16px; }
-    button { padding: 8px 12px; font-size: 16px; margin-top: 10px; cursor: pointer; }
+    input { width: 90%; padding: 8px; font-size: 16px; margin-top: 10px; }
+    button { padding: 10px 14px; font-size: 16px; margin-top: 10px; cursor: pointer; }
     #status { margin-top: 20px; font-size: 18px; }
   </style>
 </head>
 <body>
 
-<h1>Roblox Verification</h1>
-<p>Enter your Roblox User ID:</p>
+<h1>Discord Webhook Verification</h1>
 
-<input id="userid" placeholder="Roblox User ID">
-<button onclick="startVerification()">Verify</button>
+<p>Enter a Discord Webhook URL:</p>
+<input id="webhook" placeholder="https://discord.com/api/webhooks/...">
+
+<button onclick="sendCode()">Send Verification Code</button>
 
 <p id="status"></p>
 
 <script>
-let verifyCode = null;
+let generatedCode = null;
 
-function startVerification() {
-    const userId = document.getElementById("userid").value.trim();
-    if (!userId) return alert("Enter a User ID!");
-
-    verifyCode = "RBLX-" + Math.floor(10000 + Math.random() * 90000);
-
-    document.getElementById("status").innerHTML = `
-        Your verification code is:<br><b>${verifyCode}</b><br><br>
-        Put this code inside your Roblox profile description (bio).<br><br>
-        After adding it, click:<br><br>
-        <button onclick="checkVerification()">Check Verification</button>
-    `;
+function generateCode() {
+  return "DISC-" + Math.floor(10000 + Math.random() * 90000);
 }
 
-async function checkVerification() {
-    const userId = document.getElementById("userid").value.trim();
-    if (!verifyCode) return alert("Start verification first!");
+async function sendCode() {
+  const webhook = document.getElementById("webhook").value.trim();
+  if (!webhook) return alert("Enter a webhook URL!");
 
-    document.getElementById("status").innerText = "Fetching profile...";
+  generatedCode = generateCode();
 
-    // Fetch raw profile HTML through proxy
-    const url = `https://corsproxy.io/?https://www.roblox.com/users/${userId}/profile`;
+  // Send message to webhook
+  const payload = {
+    content: `Your verification code is: **${generatedCode}**`
+  };
 
-    const response = await fetch(url);
-    const html = await response.text();
+  document.getElementById("status").innerText = "Sending code...";
 
-    // Extract username
-    const usernameMatch = html.match(/profile-name\">([^<]+)</);
-    const username = usernameMatch ? usernameMatch[1] : "Unknown";
+  try {
+    const res = await fetch(webhook, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
 
-    // Extract bio
-    const bioMatch = html.match(/<span class=\"profile-about-content-text linkify\"[^>]*>([\s\S]*?)<\/span>/);
-    const bio = bioMatch ? bioMatch[1].trim() : "";
-
-    if (bio.includes(verifyCode)) {
-        // Ask confirmation
-        document.getElementById("status").innerHTML = `
-            I found this username on the profile:<br><b>${username}</b><br><br>
-            Is this you?<br><br>
-            <button onclick="confirmUser('${username}', '${userId}')">Yes, verify me</button>
-        `;
+    if (res.ok) {
+      document.getElementById("status").innerHTML = `
+        Code sent! Check your Discord channel.<br><br>
+        Enter your verification code:<br>
+        <input id="codeInput" placeholder="Enter code"><br>
+        <button onclick="verifyCode()">Verify</button>
+      `;
     } else {
-        document.getElementById("status").innerHTML =
-            `Code not found in bio.<br><br>
-            Make sure your description contains:<br><b>${verifyCode}</b>`;
+      document.getElementById("status").innerText =
+        "Failed to send message. Check your webhook URL.";
     }
+  } catch (e) {
+    document.getElementById("status").innerText =
+      "Error sending to webhook. Make sure the URL is correct.";
+  }
 }
 
-function confirmUser(username, userId) {
-    document.getElementById("status").innerHTML = `
-        <b>Verification successful!</b><br><br>
-        Username: ${username}<br>
-        User ID: ${userId}
-    `;
+function verifyCode() {
+  const userCode = document.getElementById("codeInput").value.trim();
+
+  if (userCode === generatedCode) {
+    document.getElementById("status").innerHTML =
+      `<b>Verification successful!</b>`;
+  } else {
+    document.getElementById("status").innerHTML =
+      `Incorrect code. Check your Discord channel again.`;
+  }
 }
 </script>
 
