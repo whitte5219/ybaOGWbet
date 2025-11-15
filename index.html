@@ -1,81 +1,602 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Discord Webhook Verification</title>
-  <style>
-    body { font-family: Arial; padding: 20px; }
-    input { width: 90%; padding: 8px; font-size: 16px; margin-top: 10px; }
-    button { padding: 10px 14px; font-size: 16px; margin-top: 10px; cursor: pointer; }
-    #status { margin-top: 20px; font-size: 18px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ogwXbet - Premium Betting Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #1a1f2e;
+            --secondary: #2d3748;
+            --accent: #4a90e2;
+            --accent-dark: #3a7bd5;
+            --success: #4caf50;
+            --danger: #f44336;
+            --text: #f8f9fa;
+            --text-secondary: #a0aec0;
+            --card-bg: #252b3d;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--primary) 0%, #0f141f 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            margin: 20px auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .logo i {
+            font-size: 2.5rem;
+            color: var(--accent);
+        }
+
+        .logo h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--accent), #7b68ee);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .tagline {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-top: 5px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: var(--text);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            background-color: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+        }
+
+        input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(to right, var(--accent), var(--accent-dark));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-success {
+            background: linear-gradient(to right, var(--success), #3d9140);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+            display: none;
+        }
+
+        .status.success {
+            background-color: rgba(76, 175, 80, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            display: block;
+        }
+
+        .status.error {
+            background-color: rgba(244, 67, 54, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            display: block;
+        }
+
+        .status.info {
+            background-color: rgba(74, 144, 226, 0.15);
+            color: var(--accent);
+            border: 1px solid rgba(74, 144, 226, 0.3);
+            display: block;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+        }
+
+        .step-circle {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background-color: var(--secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: var(--transition);
+        }
+
+        .step.active .step-circle {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .step-line {
+            width: 60px;
+            height: 2px;
+            background-color: var(--secondary);
+            margin: 0 10px;
+        }
+
+        .step.active .step-line {
+            background-color: var(--accent);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .token-display {
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 1.1rem;
+            text-align: center;
+            word-break: break-all;
+            border: 1px dashed var(--accent);
+        }
+
+        .warning {
+            background-color: rgba(244, 67, 54, 0.1);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: var(--danger);
+            font-size: 0.9rem;
+        }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            padding: 20px 0;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .feature {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .feature i {
+            font-size: 1.5rem;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 0 10px;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-dice"></i>
+                <h1>ogwXbet</h1>
+            </div>
+            <p class="tagline">Premium betting experience with secure authentication</p>
+        </header>
 
-<h1>Discord Webhook Verification</h1>
+        <div class="step-indicator">
+            <div class="step active">
+                <div class="step-circle">1</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step">
+                <div class="step-circle">2</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step">
+                <div class="step-circle">3</div>
+            </div>
+        </div>
 
-<p>Enter a Discord Webhook URL:</p>
-<input id="webhook" placeholder="https://discord.com/api/webhooks/...">
+        <div class="card" id="account-creation">
+            <h2 class="card-title">Create Your Account</h2>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter your username">
+            </div>
+            <div class="form-group">
+                <label for="webhook">Discord Webhook URL</label>
+                <input type="text" id="webhook" placeholder="https://discord.com/api/webhooks/...">
+            </div>
+            <button class="btn" id="create-account-btn">Create Account</button>
+            
+            <div class="warning">
+                <i class="fas fa-exclamation-triangle"></i> 
+                Your username will be permanently reserved after account creation
+            </div>
+            
+            <div class="features">
+                <div class="feature">
+                    <i class="fas fa-shield-alt"></i>
+                    <p>Secure Authentication</p>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-bolt"></i>
+                    <p>Fast Verification</p>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-user-lock"></i>
+                    <p>Unique Usernames</p>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-history"></i>
+                    <p>Session Management</p>
+                </div>
+            </div>
+        </div>
 
-<button onclick="sendCode()">Send Verification Code</button>
+        <div class="card hidden" id="token-verification">
+            <h2 class="card-title">Account Created Successfully</h2>
+            <p style="text-align: center; margin-bottom: 15px;">Your login token has been sent to your Discord webhook.</p>
+            
+            <div class="token-display" id="generated-token">
+                <!-- Token will appear here -->
+            </div>
+            
+            <div class="warning">
+                <i class="fas fa-exclamation-circle"></i> 
+                <strong>DO NOT SHARE YOUR LOGIN TOKEN</strong><br>
+                This token provides access to your account. Keep it secure and save it for future logins.
+            </div>
+            
+            <button class="btn btn-success" id="continue-btn">Continue to Login</button>
+        </div>
 
-<p id="status"></p>
+        <div class="card hidden" id="login-section">
+            <h2 class="card-title">Login to Your Account</h2>
+            <div class="form-group">
+                <label for="login-username">Username</label>
+                <input type="text" id="login-username" placeholder="Enter your username">
+            </div>
+            <div class="form-group">
+                <label for="login-token">Login Token</label>
+                <input type="text" id="login-token" placeholder="Enter your login token">
+            </div>
+            <button class="btn" id="login-btn">Login</button>
+            
+            <div class="status info" id="login-status">
+                <!-- Login status messages will appear here -->
+            </div>
+        </div>
 
-<script>
-let generatedCode = null;
+        <div class="status" id="status-message">
+            <!-- Status messages will appear here -->
+        </div>
+    </div>
 
-function generateCode() {
-  return "DISC-" + Math.floor(10000 + Math.random() * 90000);
-}
+    <footer>
+        <p>© 2023 ogwXbet. All rights reserved. | Secure betting platform</p>
+    </footer>
 
-async function sendCode() {
-  const webhook = document.getElementById("webhook").value.trim();
-  if (!webhook) return alert("Enter a webhook URL!");
-
-  generatedCode = generateCode();
-
-  // Send message to webhook
-  const payload = {
-    content: `Your verification code is: **${generatedCode}**`
-  };
-
-  document.getElementById("status").innerText = "Sending code...";
-
-  try {
-    const res = await fetch(webhook, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    if (res.ok) {
-      document.getElementById("status").innerHTML = `
-        Code sent! Check your Discord channel.<br><br>
-        Enter your verification code:<br>
-        <input id="codeInput" placeholder="Enter code"><br>
-        <button onclick="verifyCode()">Verify</button>
-      `;
-    } else {
-      document.getElementById("status").innerText =
-        "Failed to send message. Check your webhook URL.";
-    }
-  } catch (e) {
-    document.getElementById("status").innerText =
-      "Error sending to webhook. Make sure the URL is correct.";
-  }
-}
-
-function verifyCode() {
-  const userCode = document.getElementById("codeInput").value.trim();
-
-  if (userCode === generatedCode) {
-    document.getElementById("status").innerHTML =
-      `<b>Verification successful!</b>`;
-  } else {
-    document.getElementById("status").innerHTML =
-      `Incorrect code. Check your Discord channel again.`;
-  }
-}
-</script>
-
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const accountCreationSection = document.getElementById('account-creation');
+            const tokenVerificationSection = document.getElementById('token-verification');
+            const loginSection = document.getElementById('login-section');
+            const statusMessage = document.getElementById('status-message');
+            const generatedTokenDisplay = document.getElementById('generated-token');
+            const loginStatus = document.getElementById('login-status');
+            
+            // Buttons
+            const createAccountBtn = document.getElementById('create-account-btn');
+            const continueBtn = document.getElementById('continue-btn');
+            const loginBtn = document.getElementById('login-btn');
+            
+            // Step indicators
+            const steps = document.querySelectorAll('.step');
+            
+            // Store generated token
+            let generatedToken = null;
+            let currentUsername = null;
+            
+            // Create account function
+            createAccountBtn.addEventListener('click', async function() {
+                const username = document.getElementById('username').value.trim();
+                const webhook = document.getElementById('webhook').value.trim();
+                
+                // Validation
+                if (!username) {
+                    showStatus('Please enter a username', 'error');
+                    return;
+                }
+                
+                if (!webhook) {
+                    showStatus('Please enter a Discord webhook URL', 'error');
+                    return;
+                }
+                
+                if (!webhook.startsWith('https://discord.com/api/webhooks/')) {
+                    showStatus('Please enter a valid Discord webhook URL', 'error');
+                    return;
+                }
+                
+                // Check if username already exists in localStorage
+                if (localStorage.getItem(`ogwXbet_${username}`)) {
+                    showStatus('Username already taken. Please choose a different one.', 'error');
+                    return;
+                }
+                
+                // Show loading state
+                createAccountBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
+                createAccountBtn.disabled = true;
+                
+                // Generate token
+                generatedToken = generateToken();
+                currentUsername = username;
+                
+                // Prepare payload for Discord webhook
+                const payload = {
+                    content: `**Account Created**\n\nUsername: ${username}\nLogin Token:\n\`\`\`\n${generatedToken}\n\`\`\`\n\n**DO NOT SHARE YOUR LOGIN TOKEN AND SAVE IT**\nA login token is used to log into your account. Sharing it will allow access to your account to other people.`
+                };
+                
+                try {
+                    // Send to webhook
+                    const response = await fetch(webhook, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (response.ok) {
+                        // Store account in localStorage
+                        localStorage.setItem(`ogwXbet_${username}`, generatedToken);
+                        
+                        // Show success and move to next step
+                        showStatus('Account created successfully! Token sent to your Discord.', 'success');
+                        
+                        // Update UI
+                        accountCreationSection.classList.add('hidden');
+                        tokenVerificationSection.classList.remove('hidden');
+                        generatedTokenDisplay.textContent = generatedToken;
+                        
+                        // Update step indicator
+                        updateStepIndicator(2);
+                    } else {
+                        showStatus('Failed to send token. Please check your webhook URL.', 'error');
+                    }
+                } catch (error) {
+                    showStatus('Error sending to webhook. Please check your connection and try again.', 'error');
+                }
+                
+                // Reset button
+                createAccountBtn.innerHTML = 'Create Account';
+                createAccountBtn.disabled = false;
+            });
+            
+            // Continue to login
+            continueBtn.addEventListener('click', function() {
+                tokenVerificationSection.classList.add('hidden');
+                loginSection.classList.remove('hidden');
+                updateStepIndicator(3);
+                
+                // Pre-fill the username in login form
+                document.getElementById('login-username').value = currentUsername;
+            });
+            
+            // Login function
+            loginBtn.addEventListener('click', function() {
+                const username = document.getElementById('login-username').value.trim();
+                const token = document.getElementById('login-token').value.trim();
+                
+                // Validation
+                if (!username || !token) {
+                    loginStatus.textContent = 'Please enter both username and token';
+                    loginStatus.className = 'status error';
+                    return;
+                }
+                
+                // Check if account exists and token matches
+                const storedToken = localStorage.getItem(`ogwXbet_${username}`);
+                
+                if (!storedToken) {
+                    loginStatus.textContent = 'Account not found. Please create an account first.';
+                    loginStatus.className = 'status error';
+                    return;
+                }
+                
+                if (storedToken !== token) {
+                    loginStatus.textContent = 'Invalid token. Please check and try again.';
+                    loginStatus.className = 'status error';
+                    return;
+                }
+                
+                // Successful login
+                loginStatus.textContent = 'Login successful! Redirecting to dashboard...';
+                loginStatus.className = 'status success';
+                
+                // Store current session
+                sessionStorage.setItem('ogwXbet_currentUser', username);
+                
+                // Simulate redirect (in a real app, this would redirect to the main dashboard)
+                setTimeout(() => {
+                    alert(`Welcome to ogwXbet, ${username}! This would redirect to the main betting dashboard.`);
+                    // In a real implementation: window.location.href = 'dashboard.html';
+                }, 1500);
+            });
+            
+            // Helper functions
+            function generateToken() {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                let token = '';
+                for (let i = 0; i < 16; i++) {
+                    token += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return token;
+            }
+            
+            function showStatus(message, type) {
+                statusMessage.textContent = message;
+                statusMessage.className = `status ${type}`;
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    statusMessage.className = 'status';
+                }, 5000);
+            }
+            
+            function updateStepIndicator(stepNumber) {
+                steps.forEach((step, index) => {
+                    if (index < stepNumber) {
+                        step.classList.add('active');
+                    } else {
+                        step.classList.remove('active');
+                    }
+                });
+            }
+            
+            // Check if user is already logged in
+            if (sessionStorage.getItem('ogwXbet_currentUser')) {
+                const username = sessionStorage.getItem('ogwXbet_currentUser');
+                accountCreationSection.classList.add('hidden');
+                tokenVerificationSection.classList.add('hidden');
+                loginSection.classList.remove('hidden');
+                updateStepIndicator(3);
+                
+                loginStatus.textContent = `Welcome back, ${username}! You are already logged in.`;
+                loginStatus.className = 'status success';
+            }
+        });
+    </script>
 </body>
 </html>
