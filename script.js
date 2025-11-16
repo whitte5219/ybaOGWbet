@@ -114,6 +114,147 @@ document.addEventListener('DOMContentLoaded', function () {
     const tokenStatus = document.getElementById('token-status');
     const eventLogStatus = document.getElementById('event-log-status');
 
+    // ===== CUSTOM POPUP SYSTEM =====
+    const popupOverlay = document.getElementById('popup-overlay');
+    const popupTitle = document.getElementById('popup-title');
+    const popupMessage = document.getElementById('popup-message');
+    const popupInput = document.getElementById('popup-input');
+    const popupButtons = document.getElementById('popup-buttons');
+
+    function closePopup() {
+        if (!popupOverlay) return;
+        popupOverlay.classList.remove('active');
+        setTimeout(() => {
+            popupOverlay.classList.add('hidden');
+        }, 200);
+    }
+
+    function showPopup(options) {
+        return new Promise(resolve => {
+            if (!popupOverlay || !popupTitle || !popupMessage || !popupButtons) {
+                // Fallback: resolve null if popup not available
+                resolve(null);
+                return;
+            }
+
+            const {
+                title = 'Message',
+                message = '',
+                showInput = false,
+                inputDefault = '',
+                buttons = []
+            } = options || {};
+
+            popupTitle.textContent = title;
+            popupMessage.textContent = message;
+
+            if (showInput) {
+                popupInput.classList.remove('hidden');
+                popupInput.value = inputDefault || '';
+                popupInput.focus();
+            } else {
+                popupInput.classList.add('hidden');
+                popupInput.value = '';
+            }
+
+            // Clear previous buttons
+            popupButtons.innerHTML = '';
+
+            buttons.forEach(btn => {
+                const b = document.createElement('button');
+                b.textContent = btn.text || 'OK';
+                b.classList.add('popup-btn');
+                if (btn.type) {
+                    b.classList.add(btn.type); // 'confirm', 'cancel', etc.
+                }
+
+                b.addEventListener('click', () => {
+                    const result = {
+                        button: btn.value,
+                        input: popupInput.value
+                    };
+                    closePopup();
+                    resolve(result);
+                });
+
+                popupButtons.appendChild(b);
+            });
+
+            popupOverlay.classList.remove('hidden');
+            // slight delay so CSS transition plays
+            requestAnimationFrame(() => {
+                popupOverlay.classList.add('active');
+            });
+        });
+    }
+
+    function showMessagePopup(title, message, buttonText = 'OK') {
+        return showPopup({
+            title,
+            message,
+            showInput: false,
+            buttons: [
+                { text: buttonText, value: true, type: 'confirm' }
+            ]
+        });
+    }
+
+    async function showConfirmPopup(title, message, confirmText = 'Confirm', cancelText = 'Cancel') {
+        const result = await showPopup({
+            title,
+            message,
+            showInput: false,
+            buttons: [
+                { text: cancelText, value: false, type: 'cancel' },
+                { text: confirmText, value: true, type: 'confirm' }
+            ]
+        });
+        return result && result.button === true;
+    }
+
+    async function showInputPopup(title, message, defaultValue = '', confirmText = 'Save', cancelText = 'Cancel') {
+        const result = await showPopup({
+            title,
+            message,
+            showInput: true,
+            inputDefault: defaultValue,
+            buttons: [
+                { text: cancelText, value: 'cancel', type: 'cancel' },
+                { text: confirmText, value: 'ok', type: 'confirm' }
+            ]
+        });
+        if (!result || result.button !== 'ok') return null;
+        return result.input;
+    }
+
+    async function showChoicePopup(title, message, choices, cancelText = 'Cancel') {
+        const buttons = [];
+        choices.forEach(ch => {
+            buttons.push({
+                text: ch.label,
+                value: ch.value,
+                type: 'confirm'
+            });
+        });
+        buttons.push({
+            text: cancelText,
+            value: null,
+            type: 'cancel'
+        });
+
+        const result = await showPopup({
+            title,
+            message,
+            showInput: false,
+            buttons
+        });
+
+        if (!result) return null;
+        return result.button;
+    }
+
+    // ===============================
+
     checkLoginStatus();
 
     showRegisterBtn.addEventListener('click', function () {
@@ -236,7 +377,7 @@ document.addEventListener('DOMContentLoaded', function () {
         showLoginPage();
     });
 
-    // Token regeneration with two options
+    // Token regeneration with two options (custom popup)
     changeTokenBtn.addEventListener('click', async function () {
         const username = sessionStorage.getItem('ogwXbet_currentUser');
         if (!username) return;
@@ -246,16 +387,28 @@ document.addEventListener('DOMContentLoaded', function () {
         tokenStatus.textContent = '';
         tokenStatus.className = 'status';
 
-        const useOriginal = confirm(
-            "Generate new token:\n\nOK = use your original webhook\nCancel = enter a new webhook"
+        const choice = await showChoicePopup(
+            'Generate New Token',
+            'How do you want to receive your new login token?',
+            [
+                { label: 'Use account creation webhook', value: 'original' },
+                { label: 'Enter new webhook', value: 'new' }
+            ]
         );
+
+        if (!choice) {
+            tokenStatus.textContent = 'Token generation cancelled.';
+            tokenStatus.className = 'status info';
+            return;
+        }
 
         let targetWebhook = accountData.webhook;
 
-        if (!useOriginal) {
-            const newWebhook = prompt(
-                "Enter new Discord webhook URL:",
-                "https://discord.com/api/webhooks/..."
+        if (choice === 'new') {
+            const newWebhook = await showInputPopup(
+                'New Webhook',
+                'Enter new Discord webhook URL:',
+                'https://discord.com/api/webhooks/...'
             );
             if (!newWebhook) {
                 tokenStatus.textContent = 'Token generation cancelled.';
@@ -268,7 +421,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             targetWebhook = newWebhook;
-            // update stored webhook to the new one
             accountData.webhook = newWebhook;
         }
 
@@ -345,7 +497,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (clearEventLogBtn) {
         clearEventLogBtn.addEventListener('click', async function () {
             if (!isCurrentUserModerator()) return;
-            const confirmClear = confirm("Are you sure you want to clear the entire event log?");
+
+            const confirmClear = await showConfirmPopup(
+                'Clear Event Log',
+                'Are you sure you want to clear the entire event log? This cannot be undone.',
+                'Clear Log',
+                'Cancel'
+            );
             if (!confirmClear) return;
 
             try {
@@ -748,21 +906,25 @@ document.addEventListener('DOMContentLoaded', function () {
         container.innerHTML = eventsHTML;
     }
 
-    // Moderator event menu
-    function handleEventMenu(eventId) {
-        const action = prompt(
-            "Event action (type one):\n- move\n- edit\n- end",
-            "move"
+    // Moderator event menu (custom popup)
+    async function handleEventMenu(eventId) {
+        const action = await showChoicePopup(
+            'Event Actions',
+            'Choose what you want to do with this event:',
+            [
+                { label: 'Move', value: 'move' },
+                { label: 'Edit', value: 'edit' },
+                { label: 'End Event', value: 'end' }
+            ]
         );
         if (!action) return;
 
-        const normalized = action.toLowerCase().trim();
-        if (normalized === 'move') {
-            moveEvent(eventId);
-        } else if (normalized === 'edit') {
-            editEvent(eventId);
-        } else if (normalized === 'end') {
-            endEvent(eventId);
+        if (action === 'move') {
+            await moveEvent(eventId);
+        } else if (action === 'edit') {
+            await editEvent(eventId);
+        } else if (action === 'end') {
+            await endEvent(eventId);
         }
     }
 
@@ -771,53 +933,76 @@ document.addEventListener('DOMContentLoaded', function () {
         return events.find(ev => ev.id === eventId);
     }
 
-    function moveEvent(eventId) {
+    async function moveEvent(eventId) {
         const eventObj = findEventById(eventId);
         if (!eventObj) return;
 
-        const newCategory = prompt(
-            "Enter new category: upcoming, active, ended",
-            eventObj.category || 'upcoming'
+        const newCategory = await showChoicePopup(
+            'Move Event',
+            'Select new category for this event:',
+            [
+                { label: 'Upcoming', value: 'upcoming' },
+                { label: 'Active', value: 'active' },
+                { label: 'Ended', value: 'ended' }
+            ]
         );
         if (!newCategory) return;
 
-        const cat = newCategory.toLowerCase();
-        if (!['upcoming', 'active', 'ended'].includes(cat)) {
-            alert('Invalid category.');
-            return;
-        }
-
-        eventObj.category = cat;
+        eventObj.category = newCategory;
         const key = window.eventKeyMap[eventId];
         if (!key) return;
 
         set(ref(db, `events/${key}`), eventObj);
     }
 
-    function editEvent(eventId) {
+    async function editEvent(eventId) {
         const eventObj = findEventById(eventId);
         if (!eventObj) return;
 
-        const newTitle = prompt("Edit title:", eventObj.title) || eventObj.title;
-        const newTeamA = prompt("Edit Team A:", eventObj.teamA) || eventObj.teamA;
-        const newTeamB = prompt("Edit Team B:", eventObj.teamB) || eventObj.teamB;
-        const newDate = prompt("Edit date (YYYY-MM-DDTHH:MM):", eventObj.date) || eventObj.date;
-        const newCategory = prompt(
-            "Edit category: upcoming, active, ended",
-            eventObj.category || 'upcoming'
-        ) || eventObj.category;
+        const newTitle = await showInputPopup(
+            'Edit Title',
+            'Update event title:',
+            eventObj.title || ''
+        );
+        if (newTitle === null) return;
 
-        const cat = newCategory.toLowerCase();
-        if (!['upcoming', 'active', 'ended'].includes(cat)) {
-            alert('Invalid category.');
-            return;
-        }
+        const newTeamA = await showInputPopup(
+            'Edit Team A',
+            'Update Team A name:',
+            eventObj.teamA || ''
+        );
+        if (newTeamA === null) return;
+
+        const newTeamB = await showInputPopup(
+            'Edit Team B',
+            'Update Team B name:',
+            eventObj.teamB || ''
+        );
+        if (newTeamB === null) return;
+
+        const newDate = await showInputPopup(
+            'Edit Date & Time',
+            'Update date (YYYY-MM-DDTHH:MM):',
+            eventObj.date || ''
+        );
+        if (newDate === null) return;
+
+        const newCategory = await showChoicePopup(
+            'Edit Category',
+            'Update the category:',
+            [
+                { label: 'Upcoming', value: 'upcoming' },
+                { label: 'Active', value: 'active' },
+                { label: 'Ended', value: 'ended' }
+            ]
+        );
+        if (!newCategory) return;
 
         eventObj.title = newTitle;
         eventObj.teamA = newTeamA;
         eventObj.teamB = newTeamB;
         eventObj.date = newDate;
-        eventObj.category = cat;
+        eventObj.category = newCategory;
 
         const key = window.eventKeyMap[eventId];
         if (!key) return;
@@ -829,18 +1014,17 @@ document.addEventListener('DOMContentLoaded', function () {
         const eventObj = findEventById(eventId);
         if (!eventObj) return;
 
-        const winnerChoiceRaw = prompt(
-            `Who won?\nType 'A' for ${eventObj.teamA}\nType 'B' for ${eventObj.teamB}`,
-            'A'
+        const winnerChoice = await showChoicePopup(
+            'End Event',
+            `Who won "${eventObj.title}"?`,
+            [
+                { label: eventObj.teamA, value: 'A' },
+                { label: eventObj.teamB, value: 'B' }
+            ]
         );
-        if (!winnerChoiceRaw) return;
+        if (!winnerChoice) return;
 
-        const choice = winnerChoiceRaw.toUpperCase().trim();
-        if (!['A', 'B'].includes(choice)) {
-            alert('Invalid choice.');
-            return;
-        }
-
+        const choice = winnerChoice;
         const winnerName = choice === 'A' ? eventObj.teamA : eventObj.teamB;
         const moderator = sessionStorage.getItem('ogwXbet_currentUser') || 'Unknown';
 
@@ -903,11 +1087,14 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Handle prediction button
-    function handlePrediction(eventId, choice) {
+    // Handle prediction button (custom popup)
+    async function handlePrediction(eventId, choice) {
         const username = sessionStorage.getItem('ogwXbet_currentUser');
         if (!username) {
-            alert('You must be logged in to make predictions.');
+            await showMessagePopup(
+                'Login Required',
+                'You must be logged in to make predictions.'
+            );
             return;
         }
 
@@ -920,7 +1107,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const eventObj = findEventById(eventId);
         if (!eventObj) {
-            alert('Event not found.');
+            await showMessagePopup(
+                'Error',
+                'Event not found.'
+            );
             return;
         }
 
@@ -944,28 +1134,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
         localStorage.setItem(`ogwXbet_${username}`, JSON.stringify(accountData));
         updateAccountInfo();
-        alert('Prediction saved.');
+
+        await showMessagePopup(
+            'Prediction Saved',
+            'Your prediction has been saved for this event.'
+        );
     }
 
-    // Admin event log renderer
+    // Admin event log renderer (table body)
     window.renderEventLog = function () {
-        const container = document.getElementById('event-log-list');
-        if (!container) return;
+        const tbody = document.getElementById('event-log-body');
+        if (!tbody) return;
 
         const logs = Array.isArray(window.eventLogEntries) ? window.eventLogEntries : [];
 
         if (logs.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-clipboard-list"></i>
-                    <h3>No Logged Events</h3>
-                    <p>Ended/deleted events will appear here for admins.</p>
-                </div>
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align:center; color: var(--text-secondary);">
+                        No logged events yet.
+                    </td>
+                </tr>
             `;
             return;
         }
 
-        // sort newest first
         logs.sort((a, b) => {
             const ta = a.endedAt || a.timestamp || '';
             const tb = b.endedAt || b.timestamp || '';
@@ -976,20 +1169,15 @@ document.addEventListener('DOMContentLoaded', function () {
         logs.forEach(entry => {
             const endedAt = entry.endedAt ? new Date(entry.endedAt).toLocaleString() : '';
             html += `
-                <div class="log-item">
-                    <div class="log-header">
-                        <span class="log-title">${entry.title || 'Event'}</span>
-                        <span class="log-winner">Winner: ${entry.winner || '-'}</span>
-                    </div>
-                    <div class="log-meta">
-                        <span class="log-teams">${entry.teamA || ''} vs ${entry.teamB || ''}</span>
-                        <span class="log-ended-by">Ended by: ${entry.endedBy || 'Unknown'}</span>
-                        <span class="log-time">${endedAt}</span>
-                    </div>
-                </div>
+                <tr>
+                    <td>${entry.title || 'Event'}</td>
+                    <td>${entry.winner || '-'}</td>
+                    <td>${entry.endedBy || 'Unknown'}</td>
+                    <td>${endedAt}</td>
+                </tr>
             `;
         });
 
-        container.innerHTML = html;
+        tbody.innerHTML = html;
     };
 });
