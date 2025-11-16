@@ -42,35 +42,18 @@ const auth = getAuth(app);
 const eventsRef = ref(db, "events");
 const eventLogRef = ref(db, "eventLog");
 const accountsRef = ref(db, "accounts");
+const deletedAccountsRef = ref(db, "deletedAccounts");
 
-// ============================================================================
-// NEW: REALTIME LISTENER FOR DELETED ACCOUNT AUTO-LOGOUT
-// ============================================================================
-onAuthStateChanged(auth, async (user) => {
-    if (!user) return;
-
-    const uid = user.uid;
-    const accSnap = await get(ref(db, `accounts/${uid}`));
-
-    if (!accSnap.exists()) return;
-    const acc = accSnap.val();
-
-    if (acc.deleted === true) {
-        await signOut(auth);
-        location.reload();
-    }
-});
-
-// ============================================================================
-// EVENTS DATA SUBSCRIPTION
-// ============================================================================
+// Map of eventId -> firebase key
 window.eventKeyMap = {};
 
+// Save new event to Firebase
 window.saveEventToFirebase = function (eventObj) {
     const newRef = push(eventsRef);
     set(newRef, eventObj);
 };
 
+// Subscribe to events in Firebase
 onValue(eventsRef, snapshot => {
     const events = [];
     const idToKey = {};
@@ -79,7 +62,9 @@ onValue(eventsRef, snapshot => {
         const ev = childSnap.val() || {};
         ev._key = childSnap.key;
         events.push(ev);
-        if (ev.id) idToKey[ev.id] = childSnap.key;
+        if (ev.id) {
+            idToKey[ev.id] = childSnap.key;
+        }
     });
 
     window.latestEvents = events;
@@ -90,9 +75,7 @@ onValue(eventsRef, snapshot => {
     }
 });
 
-// ============================================================================
-// EVENT LOG SUBSCRIPTION
-// ============================================================================
+// Subscribe to event log
 onValue(eventLogRef, snapshot => {
     const logs = [];
     snapshot.forEach(childSnap => {
@@ -106,11 +89,7 @@ onValue(eventLogRef, snapshot => {
     }
 });
 
-// ============================================================================
-// DOM READY
-// ============================================================================
 document.addEventListener('DOMContentLoaded', function () {
-
     const loginPage = document.getElementById('login-page');
     const dashboardPage = document.getElementById('dashboard-page');
     const accountCreationSection = document.getElementById('account-creation');
@@ -132,9 +111,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const tokenStatus = document.getElementById('token-status');
     const eventLogStatus = document.getElementById('event-log-status');
 
-    // ========================================================================
-    // POPUP SYSTEM (UNCHANGED)
-    // ========================================================================
+    // ===== CUSTOM POPUP SYSTEM =====
     const popupOverlay = document.getElementById('popup-overlay');
     const popupTitle = document.getElementById('popup-title');
     const popupMessage = document.getElementById('popup-message');
@@ -147,18 +124,23 @@ document.addEventListener('DOMContentLoaded', function () {
     function closePopup() {
         if (!popupOverlay) return;
         popupOverlay.classList.remove('active');
-        setTimeout(() => popupOverlay.classList.add('hidden'), 200);
+        setTimeout(() => {
+            popupOverlay.classList.add('hidden');
+        }, 200);
     }
 
     function showPopup(options) {
         return new Promise(resolve => {
-            if (!popupOverlay) return resolve(null);
+            if (!popupOverlay || !popupTitle || !popupMessage || !popupButtons) {
+                resolve(null);
+                return;
+            }
 
             const {
-                title = "Message",
-                message = "",
+                title = 'Message',
+                message = '',
                 showInput = false,
-                inputDefault = "",
+                inputDefault = '',
                 buttons = []
             } = options || {};
 
@@ -167,790 +149,1277 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (showInput) {
                 popupInput.classList.remove('hidden');
-                popupInput.value = inputDefault || "";
+                popupInput.value = inputDefault || '';
                 popupInput.focus();
             } else {
                 popupInput.classList.add('hidden');
-                popupInput.value = "";
+                popupInput.value = '';
             }
 
-            popupButtons.innerHTML = "";
-            buttons.forEach(btn => {
-                const el = document.createElement('button');
-                el.textContent = btn.text || "OK";
-                el.classList.add('popup-btn');
-                if (btn.type) el.classList.add(btn.type);
+            popupButtons.innerHTML = '';
 
-                el.addEventListener('click', () => {
-                    closePopup();
-                    resolve({
+            buttons.forEach(btn => {
+                const b = document.createElement('button');
+                b.textContent = btn.text || 'OK';
+                b.classList.add('popup-btn');
+                if (btn.type) {
+                    b.classList.add(btn.type); // 'confirm', 'cancel'
+                }
+
+                b.addEventListener('click', () => {
+                    const result = {
                         button: btn.value,
                         input: popupInput.value
-                    });
+                    };
+                    closePopup();
+                    resolve(result);
                 });
 
-                popupButtons.appendChild(el);
+                popupButtons.appendChild(b);
             });
 
             popupOverlay.classList.remove('hidden');
-            requestAnimationFrame(() => popupOverlay.classList.add('active'));
+            requestAnimationFrame(() => {
+                popupOverlay.classList.add('active');
+            });
         });
     }
 
-    function showMessagePopup(title, message, buttonText = "OK") {
+    function showMessagePopup(title, message, buttonText = 'OK') {
         return showPopup({
             title,
             message,
             showInput: false,
-            buttons: [{ text: buttonText, value: true, type: "confirm" }]
-        });
-    }
-
-    async function showConfirmPopup(title, message, confirmText = "Confirm", cancelText = "Cancel") {
-        const r = await showPopup({
-            title,
-            message,
             buttons: [
-                { text: cancelText, value: false, type: "cancel" },
-                { text: confirmText, value: true, type: "confirm" }
+                { text: buttonText, value: true, type: 'confirm' }
             ]
         });
-        return r && r.button === true;
     }
 
-    async function showInputPopup(title, message, v = "", confirmText = "Save", cancelText = "Cancel") {
-        const r = await showPopup({
+    async function showConfirmPopup(title, message, confirmText = 'Confirm', cancelText = 'Cancel') {
+        const result = await showPopup({
+            title,
+            message,
+            showInput: false,
+            buttons: [
+                { text: cancelText, value: false, type: 'cancel' },
+                { text: confirmText, value: true, type: 'confirm' }
+            ]
+        });
+        return result && result.button === true;
+    }
+
+    async function showInputPopup(title, message, defaultValue = '', confirmText = 'Save', cancelText = 'Cancel') {
+        const result = await showPopup({
             title,
             message,
             showInput: true,
-            inputDefault: v,
+            inputDefault: defaultValue,
             buttons: [
-                { text: cancelText, value: "cancel", type: "cancel" },
-                { text: confirmText, value: "ok", type: "confirm" }
+                { text: cancelText, value: 'cancel', type: 'cancel' },
+                { text: confirmText, value: 'ok', type: 'confirm' }
             ]
         });
-        if (!r || r.button !== "ok") return null;
-        return r.input;
+        if (!result || result.button !== 'ok') return null;
+        return result.input;
     }
 
-    async function showChoicePopup(title, message, choices, cancelText = "Cancel") {
-        const buttons = choices.map(c => ({
-            text: c.label,
-            value: c.value,
-            type: "confirm"
-        }));
-        buttons.push({ text: cancelText, value: null, type: "cancel" });
+    async function showChoicePopup(title, message, choices, cancelText = 'Cancel') {
+        const buttons = [];
+        choices.forEach(ch => {
+            buttons.push({
+                text: ch.label,
+                value: ch.value,
+                type: 'confirm'
+            });
+        });
+        buttons.push({
+            text: cancelText,
+            value: null,
+            type: 'cancel'
+        });
 
-        const r = await showPopup({
+        const result = await showPopup({
             title,
             message,
             showInput: false,
             buttons
         });
 
-        return r ? r.button : null;
+        if (!result) return null;
+        return result.button;
     }
 
-    // ========================================================================
-    // AUTH STATE CHECK
-    // ========================================================================
+    // ===============================
+
     checkLoginStatus();
-    function checkLoginStatus() {
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                loginPage.classList.remove('hidden');
-                dashboardPage.classList.add('hidden');
-                return;
-            }
 
-            const uid = user.uid;
-            currentUserUid = uid;
+    showRegisterBtn.addEventListener('click', function () {
+        loginSection.classList.add('hidden');
+        accountCreationSection.classList.remove('hidden');
+    });
 
-            const accRef = ref(db, `accounts/${uid}`);
-            const accSnap = await get(accRef);
-            if (!accSnap.exists()) {
-                await signOut(auth);
-                return;
-            }
+    showLoginBtn.addEventListener('click', function () {
+        accountCreationSection.classList.add('hidden');
+        loginSection.classList.remove('hidden');
+    });
 
-            const acc = accSnap.val();
-            currentAccount = acc;
-
-            if (acc.deleted === true) {
-                await signOut(auth);
-                return;
-            }
-
-            loginPage.classList.add('hidden');
-            dashboardPage.classList.remove('hidden');
-
-            document.getElementById('account-username').textContent = acc.username || "Unknown";
-            document.getElementById('account-created').textContent = acc.creationDate || "Unknown";
-            document.getElementById('account-reputation').textContent = acc.reputation ?? "0";
-            document.getElementById('account-token').textContent = acc.token || "None";
-
-            if (acc.isModerator === true) {
-                adminNav.classList.remove('hidden');
-                moderatorBadge.classList.remove('hidden');
-            } else {
-                adminNav.classList.add('hidden');
-                moderatorBadge.classList.add('hidden');
-            }
-
-            loadPredictions();
-        });
-    }
-
-    // ========================================================================
-    // ACCOUNT CREATION
-    // ========================================================================
-    createAccountBtn.addEventListener('click', async () => {
-        const username = document.getElementById('register-username').value.trim();
-        const webhook = document.getElementById('register-webhook').value.trim();
-
-        if (!username || !webhook) {
-            showMessagePopup("Error", "Please enter a username and webhook.");
-            return;
-        }
-
-        const token = generateToken();
-        const email = `${username}@ogwxbet.local`;
-        const password = token;
-
-        try {
-            const userCred = await createUserWithEmailAndPassword(auth, email, password);
-            const uid = userCred.user.uid;
-
-            const accountData = {
-                username,
-                webhook,
-                token,
-                reputation: 0,
-                isModerator: false,
-                creationDate: new Date().toLocaleString(),
-                predictions: {},
-                deleted: false
-            };
-
-            await set(ref(db, `accounts/${uid}`), accountData);
-
-            document.getElementById('account-username').textContent = username;
-            document.getElementById('account-created').textContent = accountData.creationDate;
-            document.getElementById('account-reputation').textContent = "0";
-            document.getElementById('account-token').textContent = token;
-
-            sendWebhook(webhook, `Your OGW Xbet account has been created!\nUsername: ${username}\nToken: ${token}`);
-
-            showMessagePopup("Account Created", "Your account has been created and your token was sent to your webhook.");
-
-            loginPage.classList.add('hidden');
-            dashboardPage.classList.remove('hidden');
-
-        } catch (err) {
-            showMessagePopup("Error", "Account creation failed: " + err.message);
+    toggleTokenBtn.addEventListener('click', function () {
+        const tokenInput = document.getElementById('login-token');
+        const icon = this.querySelector('i');
+        if (tokenInput.type === 'password') {
+            tokenInput.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            tokenInput.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
         }
     });
 
-    // ========================================================================
-    // LOGIN
-    // ========================================================================
-    loginBtn.addEventListener('click', async () => {
+    // ===== ACCOUNT CREATION (FIREBASE AUTH + DB) =====
+    createAccountBtn.addEventListener('click', async function () {
+        const username = document.getElementById('username').value.trim();
+        const webhook = document.getElementById('webhook').value.trim();
+
+        if (!username) {
+            showStatus('Please enter a username', 'error');
+            return;
+        }
+        if (!webhook) {
+            showStatus('Please enter a Discord webhook URL', 'error');
+            return;
+        }
+        if (!webhook.startsWith('https://discord.com/api/webhooks/')) {
+            showStatus('Please enter a valid Discord webhook URL', 'error');
+            return;
+        }
+
+        const email = `${username}@ogwxbet.local`;
+        const token = generateToken();
+
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, token);
+            const uid = userCredential.user.uid;
+
+            const accountProfile = {
+                username: username,
+                webhook: webhook,
+                creationDate: new Date().toISOString(),
+                bets: [],
+                predictions: [],
+                reputation: 0,
+                isModerator: username === 'Whitte4'
+            };
+
+            await set(ref(db, `accounts/${uid}`), accountProfile);
+
+            // Send token to Discord
+            const payload = {
+                content: `**Account Created**\n\nUsername: ${username}\nLogin Token:\n\`\`\`\n${token}\n\`\`\`\n\n**DO NOT SHARE YOUR LOGIN TOKEN AND SAVE IT**`
+            };
+            const response = await fetch(webhook, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                showStatus('Account created, but failed to send token to Discord. Check your webhook.', 'error');
+            } else {
+                showStatus('Account created successfully! Token sent to your Discord.', 'success');
+            }
+
+            try {
+                await signOut(auth);
+            } catch (e) {
+                console.error('Sign-out after creation failed:', e);
+            }
+
+            accountCreationSection.classList.add('hidden');
+            loginSection.classList.remove('hidden');
+            document.getElementById('login-username').value = username;
+            document.getElementById('username').value = '';
+            document.getElementById('webhook').value = '';
+
+        } catch (error) {
+            console.error('Create account error:', error);
+            if (error.code === 'auth/email-already-in-use') {
+                showStatus('Username already taken. Please choose a different one.', 'error');
+            } else {
+                showStatus('Failed to create account. Please try again later.', 'error');
+            }
+        }
+    });
+
+    // ===== LOGIN (FIREBASE AUTH) =====
+    loginBtn.addEventListener('click', async function () {
         const username = document.getElementById('login-username').value.trim();
         const token = document.getElementById('login-token').value.trim();
 
         if (!username || !token) {
-            showMessagePopup("Error", "Please enter your username and token.");
+            loginStatus.textContent = 'Please enter both username and token';
+            loginStatus.className = 'status error';
             return;
         }
 
         const email = `${username}@ogwxbet.local`;
-        const password = token;
 
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            const user = auth.currentUser;
-            const uid = user.uid;
-
-            const accSnap = await get(ref(db, `accounts/${uid}`));
-            if (!accSnap.exists()) {
-                await signOut(auth);
-                showMessagePopup("Error", "Account not found.");
-                return;
-            }
-
-            const acc = accSnap.val();
-
-            if (acc.deleted === true) {
-                await signOut(auth);
-                showMessagePopup("Account Deleted", "This account was deleted by a moderator.");
-                return;
-            }
-
-            currentUserUid = uid;
-            currentAccount = acc;
-
-            loginPage.classList.add('hidden');
-            dashboardPage.classList.remove('hidden');
-
-            document.getElementById('account-username').textContent = acc.username;
-            document.getElementById('account-created').textContent = acc.creationDate;
-            document.getElementById('account-reputation').textContent = acc.reputation;
-            document.getElementById('account-token').textContent = acc.token;
-
-            if (acc.isModerator === true) {
-                adminNav.classList.remove('hidden');
-                moderatorBadge.classList.remove('hidden');
-            } else {
-                adminNav.classList.add('hidden');
-                moderatorBadge.classList.add('hidden');
-            }
-
-            loadPredictions();
-
-        } catch (err) {
-            showMessagePopup("Error", "Login failed: " + err.message);
+            await signInWithEmailAndPassword(auth, email, token);
+            loginStatus.textContent = 'Login successful! Redirecting to dashboard...';
+            loginStatus.className = 'status success';
+        } catch (error) {
+            console.error('Login error:', error);
+            loginStatus.textContent = 'Invalid username or token. Please try again.';
+            loginStatus.className = 'status error';
         }
     });
 
-    // ========================================================================
-    // LOGOUT
-    // ========================================================================
-    logoutBtn.addEventListener('click', async () => {
-        const confirm = await showConfirmPopup("Logout", "Are you sure you want to log out?");
-        if (!confirm) return;
-        await signOut(auth);
-        location.reload();
-    });
-
-    // ========================================================================
-    // TOKEN TOGGLE
-    // ========================================================================
-    toggleTokenBtn.addEventListener('click', () => {
-        const el = document.getElementById('account-token');
-        if (el.classList.contains('blurred')) {
-            el.classList.remove('blurred');
-            toggleTokenBtn.textContent = "Hide Token";
-        } else {
-            el.classList.add('blurred');
-            toggleTokenBtn.textContent = "Show Token";
+    logoutBtn.addEventListener('click', async function () {
+        try {
+            await signOut(auth);
+        } catch (e) {
+            console.error('Logout error:', e);
         }
+        sessionStorage.removeItem('ogwXbet_currentUser');
+        sessionStorage.removeItem('ogwXbet_loginTime');
+        currentUserUid = null;
+        currentAccount = null;
+        showLoginPage();
     });
 
-    // ========================================================================
-    // TOKEN REGENERATION
-    // ========================================================================
-    changeTokenBtn.addEventListener('click', async () => {
+    // ===== TOKEN REGENERATION =====
+    changeTokenBtn.addEventListener('click', async function () {
+        if (!currentAccount || !currentUserUid) return;
+        const user = auth.currentUser;
+        if (!user) return;
+
+        tokenStatus.textContent = '';
+        tokenStatus.className = 'status';
+
         const choice = await showChoicePopup(
-            "Regenerate Token",
-            "Choose how to send the new token:",
+            'Generate New Token',
+            'How do you want to receive your new login token?',
             [
-                { label: "Use existing Webhook", value: "same" },
-                { label: "Use a new Webhook", value: "new" }
+                { label: 'Use account creation webhook', value: 'original' },
+                { label: 'Enter new webhook', value: 'new' }
             ]
         );
 
-        if (!choice) return;
-
-        let newWebhook = currentAccount.webhook;
-        if (choice === "new") {
-            const w = await showInputPopup("New Webhook", "Enter a new webhook URL:", currentAccount.webhook);
-            if (!w) return;
-            newWebhook = w.trim();
-        }
-
-        const newToken = generateToken();
-        const email = `${currentAccount.username}@ogwxbet.local`;
-
-        try {
-            await updatePassword(auth.currentUser, newToken);
-            await update(ref(db, `accounts/${currentUserUid}`), {
-                token: newToken,
-                webhook: newWebhook
-            });
-
-            document.getElementById('account-token').textContent = newToken;
-
-            sendWebhook(newWebhook, `Your OGW Xbet token has been regenerated!\nUsername: ${currentAccount.username}\nNew Token: ${newToken}`);
-
-            showMessagePopup("Token Updated", "Your token has been successfully regenerated.");
-
-        } catch (err) {
-            showMessagePopup("Error", "Failed to update token: " + err.message);
-        }
-    });
-
-    // ========================================================================
-    // PREDICTIONS
-    // ========================================================================
-    function loadPredictions() {
-        const list = document.getElementById('prediction-list');
-        list.innerHTML = "";
-
-        if (!currentAccount || !currentAccount.predictions) return;
-
-        Object.values(currentAccount.predictions).forEach(p => {
-            const li = document.createElement('li');
-            li.textContent = `${p.eventTitle} — ${p.choice} — ${p.result || "Pending"}`;
-            list.appendChild(li);
-        });
-    }
-
-    window.savePrediction = async function (eventObj, choice) {
-        if (!currentUserUid) return;
-
-        const predId = "pred_" + Date.now();
-        const pred = {
-            eventId: eventObj.id,
-            eventTitle: eventObj.title,
-            choice,
-            result: "Pending"
-        };
-
-        await update(ref(db, `accounts/${currentUserUid}/predictions/${predId}`), pred);
-
-        const snap = await get(ref(db, `accounts/${currentUserUid}`));
-        currentAccount = snap.val();
-        loadPredictions();
-    };
-
-    // ========================================================================
-    // CREATE EVENT (MOD ONLY — UNCHANGED)
-    // ========================================================================
-    addEventBtn.addEventListener('click', async () => {
-        if (!currentAccount || !currentAccount.isModerator) {
-            showMessagePopup("Error", "Only moderators can create events.");
+        if (!choice) {
+            tokenStatus.textContent = 'Token generation cancelled.';
+            tokenStatus.className = 'status info';
             return;
         }
 
-        const title = await showInputPopup("Create Event", "Enter event title:");
-        if (!title) return;
+        let targetWebhook = currentAccount.webhook;
 
-        const teamA = await showInputPopup("Team A", "Enter the name of Team A:");
-        if (!teamA) return;
+        if (choice === 'new') {
+            const newWebhook = await showInputPopup(
+                'New Webhook',
+                'Enter new Discord webhook URL:',
+                'https://discord.com/api/webhooks/...'
+            );
+            if (!newWebhook) {
+                tokenStatus.textContent = 'Token generation cancelled.';
+                tokenStatus.className = 'status info';
+                return;
+            }
+            if (!newWebhook.startsWith('https://discord.com/api/webhooks/')) {
+                tokenStatus.textContent = 'Invalid webhook URL.';
+                tokenStatus.className = 'status error';
+                return;
+            }
+            targetWebhook = newWebhook;
+            currentAccount.webhook = newWebhook;
+        }
 
-        const teamB = await showInputPopup("Team B", "Enter the name of Team B:");
-        if (!teamB) return;
+        const newToken = generateToken();
 
-        const category = await showChoicePopup("Category", "Select event category:", [
-            { label: "Upcoming", value: "upcoming" },
-            { label: "Active", value: "active" }
-        ]);
+        try {
+            await updatePassword(user, newToken);
+            await set(ref(db, `accounts/${currentUserUid}`), currentAccount);
 
-        if (!category) return;
+            const payload = {
+                content: `**New Login Token Generated**\n\nUsername: ${currentAccount.username}\nNew Login Token:\n\`\`\`\n${newToken}\n\`\`\`\n\n**Old token is no longer valid.**`
+            };
+            const response = await fetch(targetWebhook, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-        const ev = {
-            id: "event_" + Date.now(),
-            title,
-            teamA,
-            teamB,
-            category,
-            createdBy: currentAccount.username,
-            timestamp: Date.now()
-        };
-
-        saveEventToFirebase(ev);
-        showMessagePopup("Event Created", "The event has been created successfully.");
+            if (response.ok) {
+                tokenStatus.textContent = 'New token generated and sent to Discord.';
+                tokenStatus.className = 'status success';
+            } else {
+                tokenStatus.textContent = 'Token updated, but sending to Discord failed.';
+                tokenStatus.className = 'status error';
+            }
+        } catch (err) {
+            console.error('Token regen error:', err);
+            tokenStatus.textContent = 'Failed to update token. Try re-logging and retry.';
+            tokenStatus.className = 'status error';
+        }
     });
 
-    // ========================================================================
-    // EVENT DISPLAY (UNCHANGED)
-    // ============================================================================
-    window.displayFirebaseEvents = function (events) {
-        const upcomingList = document.getElementById('upcoming-events');
-        const activeList = document.getElementById('active-events');
-        const endedList = document.getElementById('ended-events');
+    // ===== EVENT CREATION =====
+    addEventBtn.addEventListener('click', function () {
+        const title = document.getElementById('event-title').value.trim();
+        const teamA = document.getElementById('team-a').value.trim();
+        const teamB = document.getElementById('team-b').value.trim();
+        const date = document.getElementById('event-date').value;
+        const category = document.getElementById('event-category').value;
 
-        upcomingList.innerHTML = "";
-        activeList.innerHTML = "";
-        endedList.innerHTML = "";
+        if (!title || !teamA || !teamB || !date) {
+            document.getElementById('event-status').textContent = 'Please fill in all fields';
+            document.getElementById('event-status').className = 'status error';
+            return;
+        }
 
-        events.forEach(ev => {
-            const li = document.createElement('li');
-            li.classList.add('event-item');
-
-            const title = document.createElement('span');
-            title.textContent = `${ev.title} (${ev.teamA} vs ${ev.teamB})`;
-            li.appendChild(title);
-
-            const predictBtnA = document.createElement('button');
-            predictBtnA.textContent = `Predict ${ev.teamA}`;
-            predictBtnA.classList.add('predict-btn');
-            predictBtnA.addEventListener('click', () => window.savePrediction(ev, ev.teamA));
-            li.appendChild(predictBtnA);
-
-            const predictBtnB = document.createElement('button');
-            predictBtnB.textContent = `Predict ${ev.teamB}`;
-            predictBtnB.classList.add('predict-btn');
-            predictBtnB.addEventListener('click', () => window.savePrediction(ev, ev.teamB));
-            li.appendChild(predictBtnB);
-
-            if (currentAccount && currentAccount.isModerator) {
-                const menuBtn = document.createElement('button');
-                menuBtn.textContent = "⋮";
-                menuBtn.classList.add('menu-btn');
-                menuBtn.addEventListener('click', () => openEventMenu(ev));
-                li.appendChild(menuBtn);
-            }
-
-            if (ev.category === "upcoming") upcomingList.appendChild(li);
-            else if (ev.category === "active") activeList.appendChild(li);
-            else endedList.appendChild(li);
-        });
-    };
-
-    // ========================================================================
-    // EVENT MENU FOR MODERATORS
-    // ========================================================================
-    async function openEventMenu(ev) {
-        const choice = await showChoicePopup(
-            "Event Options",
-            `Manage event: ${ev.title}`,
-            [
-                { label: "Move Event", value: "move" },
-                { label: "Edit Event", value: "edit" },
-                { label: "End Event", value: "end" }
-            ]
-        );
-
-        if (!choice) return;
-
-        if (choice === "move") moveEvent(ev);
-        if (choice === "edit") editEvent(ev);
-        if (choice === "end") endEvent(ev);
-    }
-
-    async function moveEvent(ev) {
-        const category = await showChoicePopup(
-            "Move Event",
-            "Choose new category:",
-            [
-                { label: "Upcoming", value: "upcoming" },
-                { label: "Active", value: "active" },
-                { label: "Ended", value: "ended" }
-            ]
-        );
-
-        if (!category) return;
-
-        const key = window.eventKeyMap[ev.id];
-        if (!key) return;
-
-        await update(ref(db, `events/${key}`), { category });
-        showMessagePopup("Success", "Event moved.");
-    }
-
-    async function editEvent(ev) {
-        const newTitle = await showInputPopup("Edit Title", "Enter new title:", ev.title);
-        if (!newTitle) return;
-
-        const newA = await showInputPopup("Edit Team A", "Enter name for Team A:", ev.teamA);
-        if (!newA) return;
-
-        const newB = await showInputPopup("Edit Team B", "Enter name for Team B:", ev.teamB);
-        if (!newB) return;
-
-        const key = window.eventKeyMap[ev.id];
-        if (!key) return;
-
-        await update(ref(db, `events/${key}`), {
-            title: newTitle,
-            teamA: newA,
-            teamB: newB
-        });
-
-        showMessagePopup("Success", "Event updated.");
-    }
-
-    async function endEvent(ev) {
-        const winner = await showChoicePopup(
-            "End Event",
-            "Select the winner:",
-            [
-                { label: ev.teamA, value: ev.teamA },
-                { label: ev.teamB, value: ev.teamB }
-            ]
-        );
-
-        if (!winner) return;
-
-        const key = window.eventKeyMap[ev.id];
-        if (!key) return;
-
-        await logEvent(ev, winner);
-        await remove(ref(db, `events/${key}`));
-
-        await updatePredictions(ev, winner);
-
-        showMessagePopup("Event Ended", `Winner: ${winner}`);
-    }
-
-    async function logEvent(ev, winner) {
-        const logEntry = {
-            id: ev.id,
-            title: ev.title,
-            teamA: ev.teamA,
-            teamB: ev.teamB,
-            winner,
-            endedBy: currentAccount.username,
-            timestamp: Date.now()
+        const newEvent = {
+            id: Date.now().toString(),
+            title: title,
+            teamA: teamA,
+            teamB: teamB,
+            date: date,
+            category: category,
+            oddsA: 2.10,
+            oddsDraw: 3.25,
+            oddsB: 2.80,
+            createdBy: currentAccount && currentAccount.username ? currentAccount.username : 'Unknown'
         };
 
-        await push(eventLogRef, logEntry);
-    }
+        if (window.saveEventToFirebase) {
+            window.saveEventToFirebase(newEvent);
+        }
 
-    async function updatePredictions(ev, winner) {
-        const allAccSnap = await get(accountsRef);
-        if (!allAccSnap.exists()) return;
+        document.getElementById('event-status').textContent = 'Event added successfully!';
+        document.getElementById('event-status').className = 'status success';
 
-        const all = allAccSnap.val();
-        for (const uid in all) {
-            const acc = all[uid];
-            if (!acc.predictions) continue;
+        document.getElementById('event-title').value = '';
+        document.getElementById('team-a').value = '';
+        document.getElementById('team-b').value = '';
+        document.getElementById('event-date').value = '';
 
-            let changed = false;
+        setTimeout(() => {
+            document.getElementById('event-status').className = 'status';
+        }, 3000);
+    });
 
-            for (const pid in acc.predictions) {
-                const p = acc.predictions[pid];
-                if (p.eventId === ev.id) {
-                    p.result = p.choice === winner ? "Correct" : "Wrong";
-                    changed = true;
+    if (clearEventLogBtn) {
+        clearEventLogBtn.addEventListener('click', async function () {
+            if (!isCurrentUserModerator()) return;
 
-                    if (p.choice === winner) acc.reputation = (acc.reputation || 0) + 1;
-                    else acc.reputation = (acc.reputation || 0) - 0.5;
-                }
+            const confirmClear = await showConfirmPopup(
+                'Clear Event Log',
+                'Are you sure you want to clear the entire event log? This cannot be undone.',
+                'Clear Log',
+                'Cancel'
+            );
+            if (!confirmClear) return;
+
+            try {
+                await set(eventLogRef, null);
+                eventLogStatus.textContent = 'Event log cleared.';
+                eventLogStatus.className = 'status success';
+            } catch (err) {
+                eventLogStatus.textContent = 'Failed to clear event log.';
+                eventLogStatus.className = 'status error';
             }
 
-            if (changed) {
-                await update(ref(db, `accounts/${uid}`), {
-                    predictions: acc.predictions,
-                    reputation: acc.reputation
+            setTimeout(() => {
+                eventLogStatus.className = 'status';
+            }, 3000);
+        });
+    }
+
+    const navLinks = document.querySelectorAll('.nav-link');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            navLinks.forEach(l => l.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+
+            this.classList.add('active');
+            const tabId = this.getAttribute('data-tab') + '-tab';
+            const tab = document.getElementById(tabId);
+            if (tab) tab.classList.add('active');
+
+            if (this.getAttribute('data-tab') === 'account') {
+                updateAccountInfo();
+            }
+            if (this.getAttribute('data-tab') === 'admin') {
+                updateAdminInfo();
+            }
+            if (this.getAttribute('data-tab') === 'ogws') {
+                loadEvents();
+            }
+        });
+    });
+
+    const categoryTabs = document.querySelectorAll('.category-tab');
+    const categoryContents = document.querySelectorAll('.category-content');
+
+    categoryTabs.forEach(tab => {
+        tab.addEventListener('click', function () {
+            categoryTabs.forEach(t => t.classList.remove('active'));
+            categoryContents.forEach(content => content.classList.remove('active'));
+
+            this.classList.add('active');
+            const category = this.getAttribute('data-category');
+            document.getElementById(`${category}-content`).classList.add('active');
+        });
+    });
+
+    // ===== AUTH STATE HANDLER (includes deleted accounts check) =====
+    function checkLoginStatus() {
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    const uid = user.uid;
+                    const accRef = ref(db, `accounts/${uid}`);
+                    const accSnap = await get(accRef);
+
+                    if (accSnap.exists()) {
+                        currentUserUid = uid;
+                        currentAccount = accSnap.val() || {};
+
+                        sessionStorage.setItem('ogwXbet_currentUser', currentAccount.username || '');
+                        sessionStorage.setItem('ogwXbet_loginTime', new Date().getTime().toString());
+
+                        showDashboard();
+                    } else {
+                        // maybe deleted?
+                        const delSnap = await get(ref(db, `deletedAccounts/${uid}`));
+                        currentUserUid = null;
+                        currentAccount = null;
+                        await signOut(auth);
+                        showLoginPage();
+
+                        if (delSnap.exists()) {
+                            loginStatus.textContent = 'This account was deleted by moderators.';
+                            loginStatus.className = 'status error';
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to load account profile:', e);
+                    currentUserUid = null;
+                    currentAccount = null;
+                    await signOut(auth);
+                    showLoginPage();
+                }
+            } else {
+                currentUserUid = null;
+                currentAccount = null;
+                showLoginPage();
+            }
+        });
+    }
+
+    function generateToken() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let token = '';
+        for (let i = 0; i < 16; i++) {
+            token += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return token;
+    }
+
+    function showStatus(message, type) {
+        statusMessage.textContent = message;
+        statusMessage.className = `status ${type}`;
+        setTimeout(() => {
+            statusMessage.className = 'status';
+        }, 5000);
+    }
+
+    function isCurrentUserModerator() {
+        return !!(currentAccount && currentAccount.isModerator);
+    }
+
+    function showDashboard() {
+        if (!currentAccount) {
+            showLoginPage();
+            return;
+        }
+
+        loginPage.style.display = 'none';
+        dashboardPage.style.display = 'block';
+        document.getElementById('username-display').textContent =
+            `Welcome, ${currentAccount.username || 'User'}`;
+
+        if (currentAccount.isModerator) {
+            moderatorBadge.classList.remove('hidden');
+            adminNav.classList.remove('hidden');
+        } else {
+            moderatorBadge.classList.add('hidden');
+            adminNav.classList.add('hidden');
+        }
+
+        loadEvents();
+        updateAdminInfo();
+        updateAccountInfo();
+    }
+
+    function showLoginPage() {
+        dashboardPage.style.display = 'none';
+        loginPage.style.display = 'flex';
+
+        document.getElementById('login-username').value = '';
+        document.getElementById('login-token').value = '';
+        document.getElementById('login-token').type = 'password';
+        document.getElementById('toggle-token').querySelector('i').className = 'fas fa-eye';
+        loginStatus.textContent = '';
+        loginStatus.className = 'status';
+
+        accountCreationSection.classList.add('hidden');
+        loginSection.classList.remove('hidden');
+    }
+
+    function updateAccountInfo() {
+        if (!currentAccount) return;
+
+        document.getElementById('account-username').textContent = currentAccount.username || '-';
+        document.getElementById('account-creation-date').textContent =
+            currentAccount.creationDate ? new Date(currentAccount.creationDate).toLocaleDateString() : '-';
+        document.getElementById('total-bets').textContent =
+            Array.isArray(currentAccount.bets) ? currentAccount.bets.length : 0;
+        document.getElementById('winning-rate').textContent = '0%';
+
+        const reputation = typeof currentAccount.reputation === 'number'
+            ? currentAccount.reputation
+            : 0;
+        const repEl = document.getElementById('account-reputation');
+        if (repEl) {
+            repEl.textContent = reputation.toFixed(1);
+        }
+
+        renderPredictionsList(currentAccount);
+    }
+
+    // ===== ADMIN PANEL: ALL ACCOUNTS + DELETED ACCOUNTS =====
+    async function updateAdminInfo() {
+        if (!currentAccount || !currentAccount.isModerator) {
+            return;
+        }
+
+        let userCount = 0;
+        let accountsHTML = '';
+
+        try {
+            const snap = await get(accountsRef);
+            if (snap.exists()) {
+                snap.forEach(childSnap => {
+                    const uid = childSnap.key;
+                    const acc = childSnap.val() || {};
+                    const uname = acc.username || '(unknown)';
+                    const created = acc.creationDate
+                        ? new Date(acc.creationDate).toLocaleDateString()
+                        : '-';
+
+                    userCount++;
+
+                    const isMod = !!acc.isModerator;
+                    const statusHtml = isMod
+                        ? '<span class="moderator-badge">MODERATOR</span>'
+                        : `User 
+                            <button class="btn btn-danger delete-account-btn"
+                                    data-uid="${uid}"
+                                    data-username="${uname}">
+                                <i class="fas fa-user-slash"></i> Delete
+                            </button>`;
+
+                    accountsHTML += `
+                        <tr>
+                            <td>${uname}</td>
+                            <td>${created}</td>
+                            <td>${statusHtml}</td>
+                        </tr>
+                    `;
                 });
             }
+        } catch (err) {
+            console.error('Failed to load accounts for admin panel:', err);
         }
 
-        if (auth.currentUser) {
-            const snap = await get(ref(db, `accounts/${auth.currentUser.uid}`));
-            if (snap.exists()) {
-                currentAccount = snap.val();
-                loadPredictions();
-                document.getElementById('account-reputation').textContent = currentAccount.reputation;
-            }
+        document.getElementById('total-users').textContent = userCount;
+
+        try {
+            const events = window.latestEvents || [];
+            document.getElementById('total-events').textContent = events.length;
+            document.getElementById('active-bets').textContent = '0';
+        } catch (error) {
+            document.getElementById('total-events').textContent = '0';
+            document.getElementById('active-bets').textContent = '0';
         }
+
+        document.getElementById('accounts-table-body').innerHTML =
+            accountsHTML ||
+            `
+            <tr>
+                <td colspan="3" style="text-align: center; color: var(--text-secondary);">No accounts found</td>
+            </tr>
+        `;
+
+        if (window.renderEventLog) {
+            window.renderEventLog();
+        }
+        await renderDeletedAccountsSection();
     }
 
-    // ========================================================================
-    // EVENT LOG RENDER
-    // ========================================================================
-    window.renderEventLog = function () {
-        const logContainer = document.getElementById('event-log-container');
-        if (!logContainer) return;
-
-        logContainer.innerHTML = "";
-
-        window.eventLogEntries.forEach(entry => {
-            const div = document.createElement('div');
-            div.classList.add('log-entry');
-
-            div.innerHTML = `
-                <strong>${entry.title}</strong><br>
-                Winner: ${entry.winner}<br>
-                Ended By: ${entry.endedBy}<br>
-                Time: ${new Date(entry.timestamp).toLocaleString()}
-            `;
-
-            logContainer.appendChild(div);
-        });
-    };
-
-    clearEventLogBtn.addEventListener('click', async () => {
+    async function renderDeletedAccountsSection() {
         if (!currentAccount || !currentAccount.isModerator) return;
 
-        const confirm = await showConfirmPopup("Clear Log", "This will erase all history. Continue?");
-        if (!confirm) return;
-
-        await remove(eventLogRef);
-        showMessagePopup("Cleared", "Event log cleared.");
-    });
-
-    // ========================================================================
-    // HELPER FUNCTIONS
-    // ========================================================================
-    function generateToken() {
-        return Math.random().toString(36).substring(2, 10);
-    }
-
-    function sendWebhook(url, content) {
-        fetch(url, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ content })
-        });
-    }
-
-}); // DOMContentLoaded end
-// ============================================================================
-// ADMIN — LOAD ALL ACCOUNTS (ACTIVE + DELETED)
-// ============================================================================
-function loadAllAccountsForAdmin() {
-    if (!currentAccount || !currentAccount.isModerator) return;
-
-    onValue(accountsRef, snapshot => {
-        if (!snapshot.exists()) return;
-
-        const all = snapshot.val();
-        const active = [];
-        const deleted = [];
-
-        for (const uid in all) {
-            const acc = all[uid];
-            if (acc.deleted) deleted.push({ uid, ...acc });
-            else active.push({ uid, ...acc });
+        let container = document.getElementById('deleted-accounts-section');
+        if (!container) {
+            const adminTab = document.getElementById('admin-tab');
+            container = document.createElement('div');
+            container.id = 'deleted-accounts-section';
+            container.className = 'admin-section';
+            container.innerHTML = `
+                <h3><i class="fas fa-user-slash"></i> Deleted Accounts</h3>
+                <p style="margin-bottom: 15px; color: var(--text-secondary);">
+                    These accounts were deleted by moderators. You can restore them if needed.
+                </p>
+                <div class="accounts-table-container">
+                    <table class="accounts-table">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Deleted At</th>
+                                <th>Deleted By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deleted-accounts-body"></tbody>
+                    </table>
+                </div>
+            `;
+            adminTab.appendChild(container);
         }
 
-        renderAdminAccounts(active, deleted);
-    });
-}
+        const tbody = document.getElementById('deleted-accounts-body');
+        if (!tbody) return;
 
-// ============================================================================
-// ADMIN — RENDER ACCOUNTS
-// ============================================================================
-function renderAdminAccounts(active, deleted) {
-    const activeContainer = document.getElementById("admin-active-accounts");
-    const deletedContainer = document.getElementById("admin-deleted-accounts");
+        let rows = '';
+        try {
+            const snap = await get(deletedAccountsRef);
+            if (snap.exists()) {
+                snap.forEach(childSnap => {
+                    const uid = childSnap.key;
+                    const acc = childSnap.val() || {};
+                    const uname = acc.username || '(unknown)';
+                    const deletedAt = acc.deletedAt ? new Date(acc.deletedAt).toLocaleString() : '-';
+                    const deletedBy = acc.deletedBy || '-';
 
-    if (!activeContainer || !deletedContainer) return;
+                    rows += `
+                        <tr>
+                            <td>${uname}</td>
+                            <td>${deletedAt}</td>
+                            <td>${deletedBy}</td>
+                            <td>
+                                <button class="btn btn-success restore-account-btn"
+                                        data-uid="${uid}">
+                                    <i class="fas fa-undo"></i> Restore
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                rows = `
+                    <tr>
+                        <td colspan="4" style="text-align:center; color: var(--text-secondary);">
+                            No deleted accounts.
+                        </td>
+                    </tr>
+                `;
+            }
+        } catch (err) {
+            console.error('Failed to load deleted accounts:', err);
+            rows = `
+                <tr>
+                    <td colspan="4" style="text-align:center; color: var(--danger);">
+                        Failed to load deleted accounts.
+                    </td>
+                </tr>
+            `;
+        }
 
-    activeContainer.innerHTML = "";
-    deletedContainer.innerHTML = "";
+        tbody.innerHTML = rows;
+    }
 
-    // ACTIVE ACCOUNTS
-    active.forEach(acc => {
-        const div = document.createElement("div");
-        div.classList.add("admin-account-entry");
+    // ===== PREDICTIONS LIST =====
+    function renderPredictionsList(accountData) {
+        const list = document.getElementById('predictions-list');
+        if (!list) return;
 
-        div.innerHTML = `
-            <span class="admin-account-name">${acc.username}</span>
-            <button class="admin-delete-btn" data-uid="${acc.uid}">Delete</button>
-        `;
+        const predictions = Array.isArray(accountData.predictions) ? accountData.predictions : [];
 
-        activeContainer.appendChild(div);
-    });
+        if (predictions.length === 0) {
+            list.innerHTML = `<p class="empty-text">You haven't made any predictions yet.</p>`;
+            return;
+        }
 
-    // DELETED ACCOUNTS
-    deleted.forEach(acc => {
-        const div = document.createElement("div");
-        div.classList.add("admin-account-entry", "deleted-entry");
+        let html = '';
+        predictions.forEach(pred => {
+            const status =
+                pred.correct === null || typeof pred.correct === 'undefined'
+                    ? 'pending'
+                    : pred.correct
+                        ? 'correct'
+                        : 'wrong';
 
-        div.innerHTML = `
-            <span class="admin-account-name">${acc.username}</span>
-            <button class="admin-restore-btn" data-uid="${acc.uid}">Restore</button>
-        `;
+            const statusLabel =
+                status === 'pending' ? 'Pending'
+                    : status === 'correct' ? 'Correct'
+                        : 'Wrong';
 
-        deletedContainer.appendChild(div);
-    });
+            const choice =
+                pred.choice === 'A'
+                    ? (pred.teamA || 'Team A')
+                    : (pred.teamB || 'Team B');
 
-    bindAdminAccountButtons();
-}
-
-// ============================================================================
-// ADMIN — BUTTON BINDING
-// ============================================================================
-function bindAdminAccountButtons() {
-    // DELETE
-    const delBtns = document.querySelectorAll(".admin-delete-btn");
-    delBtns.forEach(btn => {
-        btn.addEventListener("click", async () => {
-            const uid = btn.getAttribute("data-uid");
-            if (!uid) return;
-
-            const ok = await showConfirmPopup("Delete Account", "Are you sure you want to delete this account?");
-            if (!ok) return;
-
-            await update(ref(db, `accounts/${uid}`), { deleted: true });
+            html += `
+                <div class="prediction-item">
+                    <div class="prediction-header">
+                        <span class="prediction-event">${pred.title || 'Event'}</span>
+                        <span class="prediction-choice">You picked: ${choice}</span>
+                    </div>
+                    <div class="prediction-status ${status}">
+                        Status: ${statusLabel}
+                    </div>
+                </div>
+            `;
         });
-    });
 
-    // RESTORE
-    const restoreBtns = document.querySelectorAll(".admin-restore-btn");
-    restoreBtns.forEach(btn => {
-        btn.addEventListener("click", async () => {
-            const uid = btn.getAttribute("data-uid");
-            if (!uid) return;
+        list.innerHTML = html;
+    }
 
-            const ok = await showConfirmPopup("Restore Account", "Restore this deleted account?");
-            if (!ok) return;
+    // ===== EVENTS RENDERING =====
+    window.displayFirebaseEvents = function (events) {
+        document.getElementById('upcoming-events').innerHTML = '';
+        document.getElementById('active-events').innerHTML = '';
+        document.getElementById('ended-events').innerHTML = '';
 
-            await update(ref(db, `accounts/${uid}`), { deleted: false });
+        if (!events || events.length === 0) {
+            const emptyHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <h3>No Events Available</h3>
+                    <p>Check back later for OGW events.</p>
+                </div>
+            `;
+            document.getElementById('upcoming-events').innerHTML = emptyHTML;
+            document.getElementById('active-events').innerHTML = emptyHTML;
+            document.getElementById('ended-events').innerHTML = emptyHTML;
+            return;
+        }
+
+        const upcoming = events.filter(event => event.category === 'upcoming');
+        const active = events.filter(event => event.category === 'active');
+        const ended = events.filter(event => event.category === 'ended');
+
+        displayEvents(upcoming, document.getElementById('upcoming-events'));
+        displayEvents(active, document.getElementById('active-events'));
+        displayEvents(ended, document.getElementById('ended-events'));
+
+        if (upcoming.length === 0) {
+            document.getElementById('upcoming-events').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <h3>No Upcoming Events</h3>
+                    <p>Check back later for upcoming OGW events.</p>
+                </div>
+            `;
+        }
+        if (active.length === 0) {
+            document.getElementById('active-events').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <h3>No Active Events</h3>
+                    <p>There are currently no active OGW events.</p>
+                </div>
+            `;
+        }
+        if (ended.length === 0) {
+            document.getElementById('ended-events').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <h3>No Ended Events</h3>
+                    <p>Check back later for completed OGW events.</p>
+                </div>
+            `;
+        }
+    };
+
+    function loadEvents() {
+        try {
+            const events = window.latestEvents || [];
+            window.displayFirebaseEvents(events);
+        } catch (error) {
+            console.log('Error loading events');
+        }
+    }
+
+    function displayEvents(events, container) {
+        if (!events || events.length === 0) return;
+        const isMod = isCurrentUserModerator();
+        let eventsHTML = '';
+
+        events.forEach(event => {
+            const menuHTML = isMod
+                ? `<div class="event-menu" data-event-id="${event.id}"><i class="fas fa-ellipsis-v"></i></div>`
+                : '';
+
+            eventsHTML += `
+                <div class="event-card" data-event-id="${event.id}">
+                    <div class="event-header">
+                        <div>
+                            <h3 class="event-title">${event.title}</h3>
+                            <div class="event-date">Starts: ${new Date(event.date).toLocaleString()}</div>
+                        </div>
+                        ${menuHTML}
+                    </div>
+                    <div class="event-body">
+                        <div class="event-teams">
+                            <div class="team">
+                                <div class="team-logo">${event.teamA.charAt(0)}</div>
+                                <div>${event.teamA}</div>
+                            </div>
+                            <div class="vs">VS</div>
+                            <div class="team">
+                                <div class="team-logo">${event.teamB.charAt(0)}</div>
+                                <div>${event.teamB}</div>
+                            </div>
+                        </div>
+                        <div class="event-odds">
+                            <div class="odd">
+                                <div>${event.teamA}</div>
+                                <div class="odd-value">${event.oddsA}</div>
+                            </div>
+                            <div class="odd">
+                                <div>Draw</div>
+                                <div class="odd-value">${event.oddsDraw}</div>
+                            </div>
+                            <div class="odd">
+                                <div>${event.teamB}</div>
+                                <div class="odd-value">${event.oddsB}</div>
+                            </div>
+                        </div>
+                        <div class="prediction-actions">
+                            <button class="predict-btn" data-event-id="${event.id}" data-choice="A">
+                                Predict ${event.teamA} win
+                            </button>
+                            <button class="predict-btn" data-event-id="${event.id}" data-choice="B">
+                                Predict ${event.teamB} win
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
         });
-    });
-}
 
-// ============================================================================
-// ADMIN TAB ACTIVATION LISTENER
-// ============================================================================
-document.getElementById("admin-nav").addEventListener("click", () => {
-    if (!currentAccount || !currentAccount.isModerator) return;
-    loadAllAccountsForAdmin();
-});
-// ============================================================================
-// SIDEBAR NAVIGATION (UNCHANGED BUT ENSURES ADMIN TAB WORKS WITH NEW SYSTEM)
-// ============================================================================
-const sidebarButtons = document.querySelectorAll(".sidebar-btn");
-const tabs = document.querySelectorAll(".tab");
+        container.innerHTML = eventsHTML;
+    }
 
-sidebarButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-        const target = btn.getAttribute("data-target");
-        if (!target) return;
+    // ===== GLOBAL CLICK HANDLER (mod menus, predictions, delete/restore accounts) =====
+    document.addEventListener('click', function (e) {
+        const menuBtn = e.target.closest('.event-menu');
+        if (menuBtn && isCurrentUserModerator()) {
+            const eventId = menuBtn.getAttribute('data-event-id');
+            handleEventMenu(eventId);
+            return;
+        }
 
-        tabs.forEach(tab => tab.classList.add("hidden"));
-        document.getElementById(target).classList.remove("hidden");
+        const predictBtn = e.target.closest('.predict-btn');
+        if (predictBtn) {
+            const eventId = predictBtn.getAttribute('data-event-id');
+            const choice = predictBtn.getAttribute('data-choice');
+            handlePrediction(eventId, choice);
+            return;
+        }
 
-        if (target === "admin-tab" && currentAccount && currentAccount.isModerator) {
-            loadAllAccountsForAdmin();
+        const deleteBtn = e.target.closest('.delete-account-btn');
+        if (deleteBtn && isCurrentUserModerator()) {
+            const uid = deleteBtn.getAttribute('data-uid');
+            const uname = deleteBtn.getAttribute('data-username');
+            deleteAccount(uid, uname);
+            return;
+        }
+
+        const restoreBtn = e.target.closest('.restore-account-btn');
+        if (restoreBtn && isCurrentUserModerator()) {
+            const uid = restoreBtn.getAttribute('data-uid');
+            restoreAccount(uid);
+            return;
         }
     });
+
+    // ===== MODERATOR EVENT MENU =====
+    async function handleEventMenu(eventId) {
+        const action = await showChoicePopup(
+            'Event Actions',
+            'Choose what you want to do with this event:',
+            [
+                { label: 'Move', value: 'move' },
+                { label: 'Edit', value: 'edit' },
+                { label: 'End Event', value: 'end' }
+            ]
+        );
+        if (!action) return;
+
+        if (action === 'move') {
+            await moveEvent(eventId);
+        } else if (action === 'edit') {
+            await editEvent(eventId);
+        } else if (action === 'end') {
+            await endEvent(eventId);
+        }
+    }
+
+    function findEventById(eventId) {
+        const events = window.latestEvents || [];
+        return events.find(ev => ev.id === eventId);
+    }
+
+    async function moveEvent(eventId) {
+        const eventObj = findEventById(eventId);
+        if (!eventObj) return;
+
+        const newCategory = await showChoicePopup(
+            'Move Event',
+            'Select new category for this event:',
+            [
+                { label: 'Upcoming', value: 'upcoming' },
+                { label: 'Active', value: 'active' },
+                { label: 'Ended', value: 'ended' }
+            ]
+        );
+        if (!newCategory) return;
+
+        eventObj.category = newCategory;
+        const key = window.eventKeyMap[eventId];
+        if (!key) return;
+
+        set(ref(db, `events/${key}`), eventObj);
+    }
+
+    async function editEvent(eventId) {
+        const eventObj = findEventById(eventId);
+        if (!eventObj) return;
+
+        const newTitle = await showInputPopup(
+            'Edit Title',
+            'Update event title:',
+            eventObj.title || ''
+        );
+        if (newTitle === null) return;
+
+        const newTeamA = await showInputPopup(
+            'Edit Team A',
+            'Update Team A name:',
+            eventObj.teamA || ''
+        );
+        if (newTeamA === null) return;
+
+        const newTeamB = await showInputPopup(
+            'Edit Team B',
+            'Update Team B name:',
+            eventObj.teamB || ''
+        );
+        if (newTeamB === null) return;
+
+        const newDate = await showInputPopup(
+            'Edit Date & Time',
+            'Update date (YYYY-MM-DDTHH:MM):',
+            eventObj.date || ''
+        );
+        if (newDate === null) return;
+
+        const newCategory = await showChoicePopup(
+            'Edit Category',
+            'Update the category:',
+            [
+                { label: 'Upcoming', value: 'upcoming' },
+                { label: 'Active', value: 'active' },
+                { label: 'Ended', value: 'ended' }
+            ]
+        );
+        if (!newCategory) return;
+
+        eventObj.title = newTitle;
+        eventObj.teamA = newTeamA;
+        eventObj.teamB = newTeamB;
+        eventObj.date = newDate;
+        eventObj.category = newCategory;
+
+        const key = window.eventKeyMap[eventId];
+        if (!key) return;
+
+        set(ref(db, `events/${key}`), eventObj);
+    }
+
+    async function endEvent(eventId) {
+        const eventObj = findEventById(eventId);
+        if (!eventObj) return;
+
+        const winnerChoice = await showChoicePopup(
+            'End Event',
+            `Who won "${eventObj.title}"?`,
+            [
+                { label: eventObj.teamA, value: 'A' },
+                { label: eventObj.teamB, value: 'B' }
+            ]
+        );
+        if (!winnerChoice) return;
+
+        const choice = winnerChoice;
+        const winnerName = choice === 'A' ? eventObj.teamA : eventObj.teamB;
+        const moderatorName = currentAccount && currentAccount.username ? currentAccount.username : 'Unknown';
+
+        await resolveEventPredictions(eventObj, choice);
+
+        const logEntry = {
+            id: eventObj.id,
+            title: eventObj.title,
+            teamA: eventObj.teamA,
+            teamB: eventObj.teamB,
+            date: eventObj.date,
+            winner: winnerName,
+            endedBy: moderatorName,
+            endedAt: new Date().toISOString()
+        };
+
+        try {
+            await push(eventLogRef, logEntry);
+        } catch (err) {
+            console.error('Failed to log event:', err);
+        }
+
+        const key = window.eventKeyMap[eventId];
+        if (!key) return;
+
+        try {
+            await remove(ref(db, `events/${key}`));
+        } catch (err) {
+            console.error('Failed to delete event:', err);
+        }
+    }
+
+    async function resolveEventPredictions(eventObj, winnerChoice) {
+        try {
+            const snap = await get(accountsRef);
+            if (!snap.exists()) return;
+
+            const updates = {};
+
+            snap.forEach(childSnap => {
+                const uid = childSnap.key;
+                const acc = childSnap.val() || {};
+                if (!Array.isArray(acc.predictions)) return;
+
+                let changed = false;
+                acc.predictions.forEach(pred => {
+                    if (pred.eventId === eventObj.id && (pred.correct === null || typeof pred.correct === 'undefined')) {
+                        const correct = pred.choice === winnerChoice;
+                        pred.correct = correct;
+                        if (typeof acc.reputation !== 'number') {
+                            acc.reputation = 0;
+                        }
+                        acc.reputation += correct ? 1 : -0.5;
+                        changed = true;
+                    }
+                });
+
+                if (changed) {
+                    updates[`accounts/${uid}`] = acc;
+                }
+            });
+
+            if (Object.keys(updates).length > 0) {
+                await update(ref(db), updates);
+            }
+        } catch (err) {
+            console.error('Failed to resolve predictions:', err);
+        }
+    }
+
+    // ===== PREDICTION HANDLER =====
+    async function handlePrediction(eventId, choice) {
+        if (!currentAccount || !currentUserUid) {
+            await showMessagePopup(
+                'Login Required',
+                'You must be logged in to make predictions.'
+            );
+            return;
+        }
+
+        const eventObj = findEventById(eventId);
+        if (!eventObj) {
+            await showMessagePopup(
+                'Error',
+                'Event not found.'
+            );
+            return;
+        }
+
+        if (!Array.isArray(currentAccount.predictions)) {
+            currentAccount.predictions = [];
+        }
+
+        let existing = currentAccount.predictions.find(p => p.eventId === eventId);
+        if (existing) {
+            existing.choice = choice;
+            existing.correct = null;
+            existing.title = eventObj.title;
+            existing.teamA = eventObj.teamA;
+            existing.teamB = eventObj.teamB;
+        } else {
+            currentAccount.predictions.push({
+                eventId: eventObj.id,
+                title: eventObj.title,
+                teamA: eventObj.teamA,
+                teamB: eventObj.teamB,
+                choice: choice,
+                correct: null
+            });
+        }
+
+        try {
+            await set(ref(db, `accounts/${currentUserUid}`), currentAccount);
+        } catch (err) {
+            console.error('Failed to save prediction:', err);
+        }
+
+        updateAccountInfo();
+
+        await showMessagePopup(
+            'Prediction Saved',
+            'Your prediction has been saved for this event.'
+        );
+    }
+
+    // ===== ACCOUNT DELETE / RESTORE (MOD ONLY) =====
+    async function deleteAccount(uid, username) {
+        if (!currentAccount || !currentAccount.isModerator) return;
+        if (uid === currentUserUid) {
+            await showMessagePopup(
+                'Action Blocked',
+                "You can't delete your own moderator account."
+            );
+            return;
+        }
+
+        const confirmed = await showConfirmPopup(
+            'Delete Account',
+            `Are you sure you want to delete account "${username}"?\nThey will no longer be able to log in.`,
+            'Delete',
+            'Cancel'
+        );
+        if (!confirmed) return;
+
+        try {
+            const accSnap = await get(ref(db, `accounts/${uid}`));
+            if (!accSnap.exists()) {
+                await showMessagePopup('Not Found', 'This account no longer exists.');
+                return;
+            }
+
+            const acc = accSnap.val() || {};
+            acc.deletedAt = new Date().toISOString();
+            acc.deletedBy = currentAccount.username || 'Moderator';
+
+            await set(ref(db, `deletedAccounts/${uid}`), acc);
+            await remove(ref(db, `accounts/${uid}`));
+
+            await showMessagePopup('Account Deleted', `Account "${username}" was deleted.`);
+            updateAdminInfo();
+        } catch (err) {
+            console.error('Delete account error:', err);
+            await showMessagePopup('Error', 'Failed to delete account.');
+        }
+    }
+
+    async function restoreAccount(uid) {
+        if (!currentAccount || !currentAccount.isModerator) return;
+
+        const confirmed = await showConfirmPopup(
+            'Restore Account',
+            'Restore this account so the user can log in again?',
+            'Restore',
+            'Cancel'
+        );
+        if (!confirmed) return;
+
+        try {
+            const snap = await get(ref(db, `deletedAccounts/${uid}`));
+            if (!snap.exists()) {
+                await showMessagePopup('Not Found', 'This deleted account no longer exists.');
+                return;
+            }
+
+            const acc = snap.val() || {};
+            delete acc.deletedAt;
+            delete acc.deletedBy;
+
+            await set(ref(db, `accounts/${uid}`), acc);
+            await remove(ref(db, `deletedAccounts/${uid}`));
+
+            await showMessagePopup(
+                'Account Restored',
+                `Account "${acc.username || ''}" was restored.`
+            );
+            updateAdminInfo();
+        } catch (err) {
+            console.error('Restore account error:', err);
+            await showMessagePopup('Error', 'Failed to restore account.');
+        }
+    }
+
+    // ===== EVENT LOG RENDERER =====
+    window.renderEventLog = function () {
+        const tbody = document.getElementById('event-log-body');
+        if (!tbody) return;
+
+        const logs = Array.isArray(window.eventLogEntries) ? window.eventLogEntries : [];
+
+        if (logs.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align:center; color: var(--text-secondary);">
+                        No logged events yet.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        logs.sort((a, b) => {
+            const ta = a.endedAt || a.timestamp || '';
+            const tb = b.endedAt || b.timestamp || '';
+            return tb.localeCompare(ta);
+        });
+
+        let html = '';
+        logs.forEach(entry => {
+            const endedAt = entry.endedAt ? new Date(entry.endedAt).toLocaleString() : '';
+            html += `
+                <tr>
+                    <td>${entry.title || 'Event'}</td>
+                    <td>${entry.winner || '-'}</td>
+                    <td>${entry.endedBy || 'Unknown'}</td>
+                    <td>${endedAt}</td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+    };
 });
-
-// ============================================================================
-// FORCE RELOAD ACCOUNT DATA WHEN AUTH USER CHANGES (SAFETY REFRESH)
-// ============================================================================
-onAuthStateChanged(auth, async (user) => {
-    if (!user) return;
-
-    const uid = user.uid;
-    const accSnap = await get(ref(db, `accounts/${uid}`));
-
-    if (!accSnap.exists()) {
-        await signOut(auth);
-        return;
-    }
-
-    const acc = accSnap.val();
-
-    if (acc.deleted === true) {
-        await signOut(auth);
-        location.reload();
-        return;
-    }
-
-    currentUserUid = uid;
-    currentAccount = acc;
-});
-
-// ============================================================================
-// FINAL SAFETY — AUTOLOAD EVENTS AND ACCOUNT DATA
-// ============================================================================
-if (typeof window.latestEvents !== "undefined" && window.displayFirebaseEvents) {
-    window.displayFirebaseEvents(window.latestEvents);
-}
-
-setTimeout(() => {
-    if (auth.currentUser && currentAccount && currentAccount.isModerator) {
-        loadAllAccountsForAdmin();
-    }
-}, 500);
-
-// END OF FILE
