@@ -849,7 +849,8 @@
                         <li><a href="#" class="nav-link active" data-tab="info">Info</a></li>
                         <li><a href="#" class="nav-link" data-tab="ogws">OGWs</a></li>
                         <li><a href="#" class="nav-link" data-tab="account">Account</a></li>
-                        <li><a href="#" class="nav-link hidden" data-tab="admin" id="admin-tab">Admin</a></li>
+                        <!-- nav link id changed to admin-nav -->
+                        <li><a href="#" class="nav-link hidden" data-tab="admin" id="admin-nav">Admin</a></li>
                     </ul>
                 </nav>
                 
@@ -1068,7 +1069,6 @@
     <script>
         // Initialize with fresh data (accounts only, events are now in Firebase)
         const initializeData = () => {
-            // Create Whitte4 moderator account
             const whitte4Account = {
                 token: 'Whitte4ModToken123',
                 creationDate: new Date().toISOString(),
@@ -1076,11 +1076,9 @@
                 bets: [],
                 isModerator: true
             };
-            
             localStorage.setItem('ogwXbet_Whitte4', JSON.stringify(whitte4Account));
         };
 
-        // Check if we need to initialize data
         if (!localStorage.getItem('ogwXbet_Whitte4')) {
             initializeData();
         }
@@ -1092,7 +1090,7 @@
             const loginSection = document.getElementById('login-section');
             const statusMessage = document.getElementById('status-message');
             const loginStatus = document.getElementById('login-status');
-            const adminTab = document.getElementById('admin-tab');
+            const adminNav = document.getElementById('admin-nav'); // nav link for admin
             const moderatorBadge = document.getElementById('moderator-badge');
             
             // Buttons
@@ -1105,26 +1103,21 @@
             const toggleTokenBtn = document.getElementById('toggle-token');
             const addEventBtn = document.getElementById('add-event-btn');
             
-            // Check if user is already logged in
             checkLoginStatus();
             
-            // Show account creation form
             showRegisterBtn.addEventListener('click', function() {
                 loginSection.classList.add('hidden');
                 accountCreationSection.classList.remove('hidden');
             });
             
-            // Show login form
             showLoginBtn.addEventListener('click', function() {
                 accountCreationSection.classList.add('hidden');
                 loginSection.classList.remove('hidden');
             });
             
-            // Toggle token visibility
             toggleTokenBtn.addEventListener('click', function() {
                 const tokenInput = document.getElementById('login-token');
                 const icon = this.querySelector('i');
-                
                 if (tokenInput.type === 'password') {
                     tokenInput.type = 'text';
                     icon.classList.remove('fa-eye');
@@ -1136,7 +1129,6 @@
                 }
             });
             
-            // Create account function
             createAccountBtn.addEventListener('click', async function() {
                 const username = document.getElementById('username').value.trim();
                 const webhook = document.getElementById('webhook').value.trim();
@@ -1145,27 +1137,20 @@
                     showStatus('Please enter a username', 'error');
                     return;
                 }
-                
                 if (!webhook) {
                     showStatus('Please enter a Discord webhook URL', 'error');
                     return;
                 }
-                
                 if (!webhook.startsWith('https://discord.com/api/webhooks/')) {
                     showStatus('Please enter a valid Discord webhook URL', 'error');
                     return;
                 }
-                
-                // Check if username already exists
                 if (localStorage.getItem(`ogwXbet_${username}`)) {
                     showStatus('Username already taken. Please choose a different one.', 'error');
                     return;
                 }
                 
-                // Generate token
                 const token = generateToken();
-                
-                // Prepare account data
                 const accountData = {
                     token: token,
                     creationDate: new Date().toISOString(),
@@ -1173,22 +1158,17 @@
                     bets: [],
                     isModerator: username === 'Whitte4'
                 };
-                
-                // Store account
                 localStorage.setItem(`ogwXbet_${username}`, JSON.stringify(accountData));
                 
-                // Send to Discord
                 try {
                     const payload = {
                         content: `**Account Created**\n\nUsername: ${username}\nLogin Token:\n\`\`\`\n${token}\n\`\`\`\n\n**DO NOT SHARE YOUR LOGIN TOKEN AND SAVE IT**`
                     };
-                    
                     const response = await fetch(webhook, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-                    
                     if (response.ok) {
                         showStatus('Account created successfully! Token sent to your Discord.', 'success');
                         accountCreationSection.classList.add('hidden');
@@ -1204,7 +1184,6 @@
                 }
             });
             
-            // Login function
             loginBtn.addEventListener('click', function() {
                 const username = document.getElementById('login-username').value.trim();
                 const token = document.getElementById('login-token').value.trim();
@@ -1215,47 +1194,38 @@
                     return;
                 }
                 
-                // Get account data
                 const accountData = getAccountData(username);
-                
                 if (!accountData) {
                     loginStatus.textContent = 'Account not found. Please create an account first.';
                     loginStatus.className = 'status error';
                     return;
                 }
-                
                 if (accountData.token !== token) {
                     loginStatus.textContent = 'Invalid token. Please check and try again.';
                     loginStatus.className = 'status error';
                     return;
                 }
                 
-                // Successful login
                 loginStatus.textContent = 'Login successful! Redirecting to dashboard...';
                 loginStatus.className = 'status success';
                 
-                // Store session
                 sessionStorage.setItem('ogwXbet_currentUser', username);
                 sessionStorage.setItem('ogwXbet_loginTime', new Date().getTime());
                 
-                // Show dashboard
                 setTimeout(() => {
                     showDashboard(username, accountData.isModerator);
                 }, 1000);
             });
             
-            // Logout function
             logoutBtn.addEventListener('click', function() {
                 sessionStorage.removeItem('ogwXbet_currentUser');
                 sessionStorage.removeItem('ogwXbet_loginTime');
                 showLoginPage();
             });
             
-            // Change token function
             changeTokenBtn.addEventListener('click', function() {
                 const username = sessionStorage.getItem('ogwXbet_currentUser');
                 if (!username) return;
-                
                 const accountData = getAccountData(username);
                 if (!accountData) return;
                 
@@ -1267,7 +1237,6 @@
                 document.getElementById('token-status').className = 'status success';
             });
             
-            // Add event function (now saves to Firebase)
             addEventBtn.addEventListener('click', function() {
                 const title = document.getElementById('event-title').value.trim();
                 const teamA = document.getElementById('team-a').value.trim();
@@ -1301,20 +1270,16 @@
                 document.getElementById('event-status').textContent = 'Event added successfully!';
                 document.getElementById('event-status').className = 'status success';
                 
-                // Clear form
                 document.getElementById('event-title').value = '';
                 document.getElementById('team-a').value = '';
                 document.getElementById('team-b').value = '';
                 document.getElementById('event-date').value = '';
-                
-                // Firebase listener will update the events display
                 
                 setTimeout(() => {
                     document.getElementById('event-status').className = 'status';
                 }, 3000);
             });
             
-            // Dashboard navigation
             const navLinks = document.querySelectorAll('.nav-link');
             const tabContents = document.querySelectorAll('.tab-content');
             
@@ -1327,23 +1292,21 @@
                     
                     this.classList.add('active');
                     const tabId = this.getAttribute('data-tab') + '-tab';
-                    document.getElementById(tabId).classList.add('active');
+                    const tab = document.getElementById(tabId);
+                    if (tab) tab.classList.add('active');
                     
                     if (this.getAttribute('data-tab') === 'account') {
                         updateAccountInfo();
                     }
-                    
                     if (this.getAttribute('data-tab') === 'admin') {
                         updateAdminInfo();
                     }
-                    
                     if (this.getAttribute('data-tab') === 'ogws') {
                         loadEvents();
                     }
                 });
             });
             
-            // Category Tabs
             const categoryTabs = document.querySelectorAll('.category-tab');
             const categoryContents = document.querySelectorAll('.category-content');
             
@@ -1358,7 +1321,6 @@
                 });
             });
             
-            // Helper functions
             function generateToken() {
                 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
                 let token = '';
@@ -1401,7 +1363,6 @@
                         }
                     }
                 }
-                
                 showLoginPage();
             }
             
@@ -1412,10 +1373,9 @@
                 
                 if (isModerator) {
                     moderatorBadge.classList.remove('hidden');
-                    adminTab.classList.remove('hidden');
+                    adminNav.classList.remove('hidden');
                 }
                 
-                // Load initial content
                 loadEvents();
                 updateAdminInfo();
             }
@@ -1438,7 +1398,6 @@
             function updateAccountInfo() {
                 const username = sessionStorage.getItem('ogwXbet_currentUser');
                 if (!username) return;
-                
                 const accountData = getAccountData(username);
                 if (!accountData) return;
                 
@@ -1449,7 +1408,6 @@
             }
             
             function updateAdminInfo() {
-                // Count users
                 let userCount = 0;
                 let accountsHTML = '';
                 
@@ -1458,10 +1416,9 @@
                     if (key && key.startsWith('ogwXbet_') && key !== 'ogwXbet_events') {
                         try {
                             userCount++;
-                            const accountData = getAccountData(key.replace('ogwXbet_', ''));
-                            if (!accountData) continue;
-                            
                             const username = key.replace('ogwXbet_', '');
+                            const accountData = getAccountData(username);
+                            if (!accountData) continue;
                             
                             accountsHTML += `
                                 <tr>
@@ -1476,7 +1433,6 @@
                     }
                 }
                 
-                // Update admin stats
                 document.getElementById('total-users').textContent = userCount;
                 
                 try {
@@ -1488,7 +1444,6 @@
                     document.getElementById('active-bets').textContent = '0';
                 }
                 
-                // Update accounts table
                 document.getElementById('accounts-table-body').innerHTML = accountsHTML || `
                     <tr>
                         <td colspan="3" style="text-align: center; color: var(--text-secondary);">No accounts found</td>
@@ -1496,9 +1451,7 @@
                 `;
             }
             
-            // Display events based on latest data from Firebase
             window.displayFirebaseEvents = function(events) {
-                // Clear existing events
                 document.getElementById('upcoming-events').innerHTML = '';
                 document.getElementById('active-events').innerHTML = '';
                 document.getElementById('ended-events').innerHTML = '';
@@ -1517,17 +1470,14 @@
                     return;
                 }
                 
-                // Group events by category
                 const upcoming = events.filter(event => event.category === 'upcoming');
                 const active = events.filter(event => event.category === 'active');
                 const ended = events.filter(event => event.category === 'ended');
                 
-                // Display events
                 displayEvents(upcoming, document.getElementById('upcoming-events'));
                 displayEvents(active, document.getElementById('active-events'));
                 displayEvents(ended, document.getElementById('ended-events'));
                 
-                // Show empty state if no events in category
                 if (upcoming.length === 0) {
                     document.getElementById('upcoming-events').innerHTML = `
                         <div class="empty-state">
@@ -1537,7 +1487,6 @@
                         </div>
                     `;
                 }
-                
                 if (active.length === 0) {
                     document.getElementById('active-events').innerHTML = `
                         <div class="empty-state">
@@ -1547,7 +1496,6 @@
                         </div>
                     `;
                 }
-                
                 if (ended.length === 0) {
                     document.getElementById('ended-events').innerHTML = `
                         <div class="empty-state">
@@ -1569,8 +1517,7 @@
             }
             
             function displayEvents(events, container) {
-                if (events.length === 0) return;
-                
+                if (!events || events.length === 0) return;
                 let eventsHTML = '';
                 
                 events.forEach(event => {
@@ -1635,18 +1582,15 @@
         const db = getDatabase(app);
         const eventsRef = ref(db, "events");
 
-        // Save new event to Firebase
         window.saveEventToFirebase = function(eventObj) {
             const newRef = push(eventsRef);
             set(newRef, eventObj);
         };
 
-        // Subscribe to events in Firebase
         onValue(eventsRef, snapshot => {
             const data = snapshot.val() || {};
             const events = Object.values(data);
             window.latestEvents = events;
-
             if (window.displayFirebaseEvents) {
                 window.displayFirebaseEvents(events);
             }
