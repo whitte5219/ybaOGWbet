@@ -33,7 +33,6 @@
             min-height: 100vh;
         }
 
-        /* Login Page Styles */
         .login-container {
             display: flex;
             flex-direction: column;
@@ -169,16 +168,8 @@
             box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
         }
 
-        .btn:active {
-            transform: translateY(0);
-        }
-
         .btn-success {
             background: linear-gradient(to right, var(--success), #3d9140);
-        }
-
-        .btn-success:hover {
-            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
         }
 
         .btn-secondary {
@@ -187,25 +178,12 @@
             color: var(--text-secondary);
         }
 
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.05);
-            box-shadow: none;
-        }
-
         .btn-warning {
             background: linear-gradient(to right, #ff9800, #f57c00);
         }
 
-        .btn-warning:hover {
-            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
-        }
-
         .btn-danger {
             background: linear-gradient(to right, var(--danger), #d32f2f);
-        }
-
-        .btn-danger:hover {
-            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
         }
 
         .status {
@@ -297,12 +275,10 @@
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Dashboard Styles */
         .dashboard {
             display: none;
         }
 
-        /* Header Styles */
         .dashboard-header {
             background-color: var(--card-bg);
             padding: 15px 30px;
@@ -375,7 +351,6 @@
             border-color: var(--danger);
         }
 
-        /* Main Content */
         .dashboard-container {
             max-width: 1200px;
             margin: 30px auto;
@@ -396,7 +371,6 @@
             to { opacity: 1; }
         }
 
-        /* Info Tab Styles */
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -460,7 +434,6 @@
             color: var(--text-secondary);
         }
 
-        /* OGWs Tab Styles */
         .category-tabs {
             display: flex;
             gap: 10px;
@@ -594,7 +567,6 @@
             color: white;
         }
 
-        /* Account Tab Styles */
         .account-section {
             background-color: var(--card-bg);
             border-radius: 12px;
@@ -639,69 +611,6 @@
             font-weight: 500;
         }
 
-        .token-display {
-            background-color: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            font-family: monospace;
-            font-size: 1.1rem;
-            text-align: center;
-            word-break: break-all;
-            border: 1px dashed var(--accent);
-        }
-
-        .bets-list {
-            margin-top: 20px;
-        }
-
-        .bet-item {
-            background-color: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .bet-info {
-            flex: 1;
-        }
-
-        .bet-event {
-            font-weight: 500;
-            margin-bottom: 5px;
-        }
-
-        .bet-details {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        .bet-status {
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-
-        .status-pending {
-            background-color: rgba(255, 152, 0, 0.2);
-            color: #ff9800;
-        }
-
-        .status-won {
-            background-color: rgba(76, 175, 80, 0.2);
-            color: var(--success);
-        }
-
-        .status-lost {
-            background-color: rgba(244, 67, 54, 0.2);
-            color: var(--danger);
-        }
-
-        /* Admin Panel Styles */
         .admin-section {
             background-color: var(--card-bg);
             border-radius: 12px;
@@ -780,7 +689,6 @@
             grid-column: 1 / -1;
         }
 
-        /* Empty State */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -793,7 +701,6 @@
             color: var(--secondary);
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
@@ -825,15 +732,6 @@
                 grid-template-columns: 1fr;
             }
             
-            .bet-item {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .bet-status {
-                margin-top: 10px;
-            }
-            
             .admin-stats {
                 grid-template-columns: 1fr 1fr;
             }
@@ -845,7 +743,7 @@
     </style>
 </head>
 <body>
-    <!-- Login Page (Initially Visible) -->
+    <!-- Login Page -->
     <div class="login-container" id="login-page">
         <div class="container">
             <header>
@@ -856,7 +754,7 @@
                 <p class="tagline">Premium betting experience with secure authentication</p>
             </header>
 
-            <!-- Login Section (Initially Visible) -->
+            <!-- Login Section -->
             <div class="card" id="login-section">
                 <h2 class="card-title">Login to Your Account</h2>
                 <div class="form-group">
@@ -872,9 +770,7 @@
                 </div>
                 <button class="btn" id="login-btn">Login</button>
                 
-                <div class="status" id="login-status">
-                    <!-- Login status messages will appear here -->
-                </div>
+                <div class="status" id="login-status"></div>
                 
                 <div class="switch-form">
                     <p>Don't have an account?</p>
@@ -882,7 +778,7 @@
                 </div>
             </div>
 
-            <!-- Account Creation Section (Initially Hidden) -->
+            <!-- Account Creation Section -->
             <div class="card hidden" id="account-creation">
                 <h2 class="card-title">Create Your Account</h2>
                 <div class="form-group">
@@ -930,9 +826,7 @@
                 </div>
             </div>
 
-            <div class="status" id="status-message">
-                <!-- Status messages will appear here -->
-            </div>
+            <div class="status" id="status-message"></div>
         </div>
 
         <footer>
@@ -940,7 +834,7 @@
         </footer>
     </div>
 
-    <!-- Dashboard (Initially Hidden) -->
+    <!-- Dashboard -->
     <div class="dashboard" id="dashboard-page">
         <!-- Dashboard Header -->
         <header class="dashboard-header">
@@ -975,22 +869,22 @@
                 <div class="info-grid">
                     <div class="info-card">
                         <h3><i class="fas fa-shield-alt"></i> Secure & Reliable</h3>
-                        <p>ogwXbet employs state-of-the-art security measures to ensure your data and funds are always protected. Our platform is built with transparency and fairness as core principles.</p>
+                        <p>ogwXbet employs state-of-the-art security measures to ensure your data and funds are always protected.</p>
                     </div>
                     
                     <div class="info-card">
                         <h3><i class="fas fa-bolt"></i> Fast Payouts</h3>
-                        <p>We pride ourselves on our quick withdrawal processing. Most payouts are completed within 24 hours, so you can access your winnings when you need them.</p>
+                        <p>We pride ourselves on our quick withdrawal processing. Most payouts are completed within 24 hours.</p>
                     </div>
                     
                     <div class="info-card">
                         <h3><i class="fas fa-trophy"></i> Competitive Odds</h3>
-                        <p>Get the best value for your bets with our industry-leading odds. We continuously monitor the market to ensure we offer competitive pricing across all events.</p>
+                        <p>Get the best value for your bets with our industry-leading odds across all events.</p>
                     </div>
                     
                     <div class="info-card">
                         <h3><i class="fas fa-headset"></i> 24/7 Support</h3>
-                        <p>Our dedicated customer support team is available around the clock to assist with any questions or issues you may encounter while using our platform.</p>
+                        <p>Our dedicated customer support team is available around the clock to assist with any questions.</p>
                     </div>
                 </div>
                 
@@ -1027,23 +921,17 @@
                 
                 <!-- Upcoming Events -->
                 <div id="upcoming-content" class="category-content active">
-                    <div class="events-grid" id="upcoming-events">
-                        <!-- Events will be loaded dynamically -->
-                    </div>
+                    <div class="events-grid" id="upcoming-events"></div>
                 </div>
                 
                 <!-- Active Events -->
                 <div id="active-content" class="category-content">
-                    <div class="events-grid" id="active-events">
-                        <!-- Events will be loaded dynamically -->
-                    </div>
+                    <div class="events-grid" id="active-events"></div>
                 </div>
                 
                 <!-- Ended Events -->
                 <div id="ended-content" class="category-content">
-                    <div class="events-grid" id="ended-events">
-                        <!-- Events will be loaded dynamically -->
-                    </div>
+                    <div class="events-grid" id="ended-events"></div>
                 </div>
             </div>
 
@@ -1080,30 +968,14 @@
                     
                     <div class="warning">
                         <i class="fas fa-exclamation-triangle"></i> 
-                        <strong>Important:</strong> Changing your login token will invalidate your current token. The new token will be sent to your Discord webhook.
+                        <strong>Important:</strong> Changing your login token will invalidate your current token.
                     </div>
                     
                     <button class="btn btn-warning" id="change-token-btn" style="margin-top: 20px;">
                         <i class="fas fa-sync-alt"></i> Generate New Login Token
                     </button>
                     
-                    <div class="status" id="token-status">
-                        <!-- Token status messages will appear here -->
-                    </div>
-                </div>
-                
-                <div class="account-section">
-                    <h3><i class="fas fa-history"></i> Betting History</h3>
-                    <p style="margin-bottom: 15px; color: var(--text-secondary);">View your recent bets and predictions.</p>
-                    
-                    <div class="bets-list" id="bets-list">
-                        <!-- Bet items will be added here dynamically -->
-                        <div class="empty-state">
-                            <i class="fas fa-clipboard-list"></i>
-                            <h3>No Bets Yet</h3>
-                            <p>You haven't placed any bets yet. Visit the OGWs tab to get started!</p>
-                        </div>
-                    </div>
+                    <div class="status" id="token-status"></div>
                 </div>
             </div>
 
@@ -1127,10 +999,6 @@
                             <div class="admin-stat-value" id="active-bets">0</div>
                             <div class="admin-stat-label">Active Bets</div>
                         </div>
-                        <div class="admin-stat">
-                            <div class="admin-stat-value" id="total-bets-admin">0</div>
-                            <div class="admin-stat-label">Total Bets</div>
-                        </div>
                     </div>
                 </div>
                 
@@ -1144,13 +1012,10 @@
                                 <tr>
                                     <th>Username</th>
                                     <th>Account Created</th>
-                                    <th>Total Bets</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
-                            <tbody id="accounts-table-body">
-                                <!-- Accounts will be loaded dynamically -->
-                            </tbody>
+                            <tbody id="accounts-table-body"></tbody>
                         </table>
                     </div>
                 </div>
@@ -1188,38 +1053,39 @@
                                 <option value="ended">Ended</option>
                             </select>
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="odds-a">Odds for Team A</label>
-                            <input type="number" id="odds-a" placeholder="e.g., 2.10" step="0.01" min="1">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="odds-draw">Odds for Draw</label>
-                            <input type="number" id="odds-draw" placeholder="e.g., 3.25" step="0.01" min="1">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="odds-b">Odds for Team B</label>
-                            <input type="number" id="odds-b" placeholder="e.g., 2.80" step="0.01" min="1">
-                        </div>
                     </div>
                     
                     <button class="btn btn-success" id="add-event-btn" style="margin-top: 20px;">
                         <i class="fas fa-plus"></i> Add Event
                     </button>
                     
-                    <div class="status" id="event-status">
-                        <!-- Event status messages will appear here -->
-                    </div>
+                    <div class="status" id="event-status"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Initialize with fresh data (accounts only, events are now in Firebase)
+        const initializeData = () => {
+            // Create Whitte4 moderator account
+            const whitte4Account = {
+                token: 'Whitte4ModToken123',
+                creationDate: new Date().toISOString(),
+                webhook: 'https://discord.com/api/webhooks/sample',
+                bets: [],
+                isModerator: true
+            };
+            
+            localStorage.setItem('ogwXbet_Whitte4', JSON.stringify(whitte4Account));
+        };
+
+        // Check if we need to initialize data
+        if (!localStorage.getItem('ogwXbet_Whitte4')) {
+            initializeData();
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
-            // DOM Elements
             const loginPage = document.getElementById('login-page');
             const dashboardPage = document.getElementById('dashboard-page');
             const accountCreationSection = document.getElementById('account-creation');
@@ -1238,35 +1104,6 @@
             const changeTokenBtn = document.getElementById('change-token-btn');
             const toggleTokenBtn = document.getElementById('toggle-token');
             const addEventBtn = document.getElementById('add-event-btn');
-            
-            // Account elements
-            const accountUsername = document.getElementById('account-username');
-            const accountCreationDate = document.getElementById('account-creation-date');
-            const totalBets = document.getElementById('total-bets');
-            const winningRate = document.getElementById('winning-rate');
-            const betsList = document.getElementById('bets-list');
-            const tokenStatus = document.getElementById('token-status');
-            
-            // Admin elements
-            const totalUsers = document.getElementById('total-users');
-            const totalEvents = document.getElementById('total-events');
-            const activeBets = document.getElementById('active-bets');
-            const totalBetsAdmin = document.getElementById('total-bets-admin');
-            const accountsTableBody = document.getElementById('accounts-table-body');
-            const eventStatus = document.getElementById('event-status');
-            
-            // Event elements
-            const upcomingEvents = document.getElementById('upcoming-events');
-            const activeEvents = document.getElementById('active-events');
-            const endedEvents = document.getElementById('ended-events');
-            
-            // Store generated token
-            let generatedToken = null;
-            let currentUsername = null;
-            let isModerator = false;
-            
-            // Initialize sample data if not exists
-            initializeSampleData();
             
             // Check if user is already logged in
             checkLoginStatus();
@@ -1304,7 +1141,6 @@
                 const username = document.getElementById('username').value.trim();
                 const webhook = document.getElementById('webhook').value.trim();
                 
-                // Validation
                 if (!username) {
                     showStatus('Please enter a username', 'error');
                     return;
@@ -1320,71 +1156,52 @@
                     return;
                 }
                 
-                // Check if username already exists in localStorage
+                // Check if username already exists
                 if (localStorage.getItem(`ogwXbet_${username}`)) {
                     showStatus('Username already taken. Please choose a different one.', 'error');
                     return;
                 }
                 
-                // Show loading state
-                createAccountBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
-                createAccountBtn.disabled = true;
-                
                 // Generate token
-                generatedToken = generateToken();
-                currentUsername = username;
+                const token = generateToken();
                 
                 // Prepare account data
                 const accountData = {
-                    token: generatedToken,
+                    token: token,
                     creationDate: new Date().toISOString(),
                     webhook: webhook,
                     bets: [],
-                    isModerator: username === 'Whitte4' // Set moderator status
+                    isModerator: username === 'Whitte4'
                 };
                 
-                // Prepare payload for Discord webhook
-                const payload = {
-                    content: `**Account Created**\n\nUsername: ${username}\nLogin Token:\n\`\`\`\n${generatedToken}\n\`\`\`\n\n**DO NOT SHARE YOUR LOGIN TOKEN AND SAVE IT**\nA login token is used to log into your account. Sharing it will allow access to your account to other people.`
-                };
+                // Store account
+                localStorage.setItem(`ogwXbet_${username}`, JSON.stringify(accountData));
                 
+                // Send to Discord
                 try {
-                    // Send to webhook
+                    const payload = {
+                        content: `**Account Created**\n\nUsername: ${username}\nLogin Token:\n\`\`\`\n${token}\n\`\`\`\n\n**DO NOT SHARE YOUR LOGIN TOKEN AND SAVE IT**`
+                    };
+                    
                     const response = await fetch(webhook, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
                     
                     if (response.ok) {
-                        // Store account in localStorage
-                        localStorage.setItem(`ogwXbet_${username}`, JSON.stringify(accountData));
-                        
-                        // Show success and move to login
                         showStatus('Account created successfully! Token sent to your Discord.', 'success');
-                        
-                        // Update UI - switch to login form
                         accountCreationSection.classList.add('hidden');
                         loginSection.classList.remove('hidden');
-                        
-                        // Pre-fill the username in login form
-                        document.getElementById('login-username').value = currentUsername;
-                        
-                        // Clear the account creation form
+                        document.getElementById('login-username').value = username;
                         document.getElementById('username').value = '';
                         document.getElementById('webhook').value = '';
                     } else {
                         showStatus('Failed to send token. Please check your webhook URL.', 'error');
                     }
                 } catch (error) {
-                    showStatus('Error sending to webhook. Please check your connection and try again.', 'error');
+                    showStatus('Error sending to webhook. Please check your connection.', 'error');
                 }
-                
-                // Reset button
-                createAccountBtn.innerHTML = 'Create Account';
-                createAccountBtn.disabled = false;
             });
             
             // Login function
@@ -1392,14 +1209,13 @@
                 const username = document.getElementById('login-username').value.trim();
                 const token = document.getElementById('login-token').value.trim();
                 
-                // Validation
                 if (!username || !token) {
                     loginStatus.textContent = 'Please enter both username and token';
                     loginStatus.className = 'status error';
                     return;
                 }
                 
-                // Check if account exists and token matches
+                // Get account data
                 const accountData = getAccountData(username);
                 
                 if (!accountData) {
@@ -1418,16 +1234,13 @@
                 loginStatus.textContent = 'Login successful! Redirecting to dashboard...';
                 loginStatus.className = 'status success';
                 
-                // Store current session
+                // Store session
                 sessionStorage.setItem('ogwXbet_currentUser', username);
                 sessionStorage.setItem('ogwXbet_loginTime', new Date().getTime());
                 
-                // Check if user is moderator
-                isModerator = accountData.isModerator || false;
-                
-                // Show dashboard after a short delay
+                // Show dashboard
                 setTimeout(() => {
-                    showDashboard(username);
+                    showDashboard(username, accountData.isModerator);
                 }, 1000);
             });
             
@@ -1439,83 +1252,35 @@
             });
             
             // Change token function
-            changeTokenBtn.addEventListener('click', async function() {
+            changeTokenBtn.addEventListener('click', function() {
                 const username = sessionStorage.getItem('ogwXbet_currentUser');
                 if (!username) return;
                 
-                // Get account data
                 const accountData = getAccountData(username);
-                if (!accountData || !accountData.webhook) {
-                    tokenStatus.textContent = 'Error: Could not find your webhook information.';
-                    tokenStatus.className = 'status error';
-                    return;
-                }
+                if (!accountData) return;
                 
-                // Show loading state
-                changeTokenBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating New Token...';
-                changeTokenBtn.disabled = true;
-                
-                // Generate new token
                 const newToken = generateToken();
+                accountData.token = newToken;
+                localStorage.setItem(`ogwXbet_${username}`, JSON.stringify(accountData));
                 
-                // Prepare payload for Discord webhook
-                const payload = {
-                    content: `**New Login Token Generated**\n\nUsername: ${username}\nNew Login Token:\n\`\`\`\n${newToken}\n\`\`\`\n\n**DO NOT SHARE YOUR LOGIN TOKEN AND SAVE IT**\nYour previous token has been invalidated. Use this new token to log in.`
-                };
-                
-                try {
-                    // Send to webhook
-                    const response = await fetch(accountData.webhook, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    });
-                    
-                    if (response.ok) {
-                        // Update account data with new token
-                        accountData.token = newToken;
-                        localStorage.setItem(`ogwXbet_${username}`, JSON.stringify(accountData));
-                        
-                        tokenStatus.textContent = 'New token generated and sent to your Discord!';
-                        tokenStatus.className = 'status success';
-                    } else {
-                        tokenStatus.textContent = 'Failed to send new token. Please check your webhook URL.';
-                        tokenStatus.className = 'status error';
-                    }
-                } catch (error) {
-                    tokenStatus.textContent = 'Error sending to webhook. Please check your connection and try again.';
-                    tokenStatus.className = 'status error';
-                }
-                
-                // Reset button
-                changeTokenBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Generate New Login Token';
-                changeTokenBtn.disabled = false;
+                document.getElementById('token-status').textContent = 'New token generated successfully!';
+                document.getElementById('token-status').className = 'status success';
             });
             
-            // Add event function
+            // Add event function (now saves to Firebase)
             addEventBtn.addEventListener('click', function() {
                 const title = document.getElementById('event-title').value.trim();
                 const teamA = document.getElementById('team-a').value.trim();
                 const teamB = document.getElementById('team-b').value.trim();
                 const date = document.getElementById('event-date').value;
                 const category = document.getElementById('event-category').value;
-                const oddsA = document.getElementById('odds-a').value;
-                const oddsDraw = document.getElementById('odds-draw').value;
-                const oddsB = document.getElementById('odds-b').value;
                 
-                // Validation
-                if (!title || !teamA || !teamB || !date || !oddsA || !oddsDraw || !oddsB) {
-                    eventStatus.textContent = 'Please fill in all fields';
-                    eventStatus.className = 'status error';
+                if (!title || !teamA || !teamB || !date) {
+                    document.getElementById('event-status').textContent = 'Please fill in all fields';
+                    document.getElementById('event-status').className = 'status error';
                     return;
                 }
                 
-                // Get existing events or initialize empty array
-                const events = JSON.parse(localStorage.getItem('ogwXbet_events') || '[]');
-                
-                // Create new event
                 const newEvent = {
                     id: Date.now().toString(),
                     title: title,
@@ -1523,41 +1288,29 @@
                     teamB: teamB,
                     date: date,
                     category: category,
-                    oddsA: parseFloat(oddsA),
-                    oddsDraw: parseFloat(oddsDraw),
-                    oddsB: parseFloat(oddsB),
-                    createdBy: currentUsername,
-                    createdAt: new Date().toISOString()
+                    oddsA: 2.10,
+                    oddsDraw: 3.25,
+                    oddsB: 2.80,
+                    createdBy: sessionStorage.getItem('ogwXbet_currentUser')
                 };
+
+                if (window.saveEventToFirebase) {
+                    window.saveEventToFirebase(newEvent);
+                }
                 
-                // Add event to array
-                events.push(newEvent);
-                
-                // Save to localStorage
-                localStorage.setItem('ogwXbet_events', JSON.stringify(events));
-                
-                // Show success message
-                eventStatus.textContent = 'Event added successfully!';
-                eventStatus.className = 'status success';
+                document.getElementById('event-status').textContent = 'Event added successfully!';
+                document.getElementById('event-status').className = 'status success';
                 
                 // Clear form
                 document.getElementById('event-title').value = '';
                 document.getElementById('team-a').value = '';
                 document.getElementById('team-b').value = '';
                 document.getElementById('event-date').value = '';
-                document.getElementById('odds-a').value = '';
-                document.getElementById('odds-draw').value = '';
-                document.getElementById('odds-b').value = '';
                 
-                // Update events display
-                loadEvents();
+                // Firebase listener will update the events display
                 
-                // Update admin stats
-                updateAdminInfo();
-                
-                // Auto-hide success message
                 setTimeout(() => {
-                    eventStatus.className = 'status';
+                    document.getElementById('event-status').className = 'status';
                 }, 3000);
             });
             
@@ -1569,48 +1322,37 @@
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
                     
-                    // Remove active class from all links and contents
                     navLinks.forEach(l => l.classList.remove('active'));
                     tabContents.forEach(content => content.classList.remove('active'));
                     
-                    // Add active class to clicked link
                     this.classList.add('active');
-                    
-                    // Show corresponding tab content
                     const tabId = this.getAttribute('data-tab') + '-tab';
                     document.getElementById(tabId).classList.add('active');
                     
-                    // If account tab is clicked, update account info
                     if (this.getAttribute('data-tab') === 'account') {
                         updateAccountInfo();
                     }
                     
-                    // If admin tab is clicked, update admin info
                     if (this.getAttribute('data-tab') === 'admin') {
                         updateAdminInfo();
                     }
                     
-                    // If OGWs tab is clicked, load events
                     if (this.getAttribute('data-tab') === 'ogws') {
                         loadEvents();
                     }
                 });
             });
             
-            // Category Tabs (for OGWs)
+            // Category Tabs
             const categoryTabs = document.querySelectorAll('.category-tab');
             const categoryContents = document.querySelectorAll('.category-content');
             
             categoryTabs.forEach(tab => {
                 tab.addEventListener('click', function() {
-                    // Remove active class from all category tabs and contents
                     categoryTabs.forEach(t => t.classList.remove('active'));
                     categoryContents.forEach(content => content.classList.remove('active'));
                     
-                    // Add active class to clicked tab
                     this.classList.add('active');
-                    
-                    // Show corresponding category content
                     const category = this.getAttribute('data-category');
                     document.getElementById(`${category}-content`).classList.add('active');
                 });
@@ -1629,8 +1371,6 @@
             function showStatus(message, type) {
                 statusMessage.textContent = message;
                 statusMessage.className = `status ${type}`;
-                
-                // Auto-hide after 5 seconds
                 setTimeout(() => {
                     statusMessage.className = 'status';
                 }, 5000);
@@ -1638,68 +1378,10 @@
             
             function getAccountData(username) {
                 try {
-                    const accountData = localStorage.getItem(`ogwXbet_${username}`);
-                    if (!accountData) return null;
-                    
-                    // Check if it's already a parsed object (shouldn't happen but just in case)
-                    if (typeof accountData === 'object') {
-                        return accountData;
-                    }
-                    
-                    // Try to parse as JSON
-                    return JSON.parse(accountData);
-                } catch (error) {
-                    console.error('Error parsing account data:', error);
+                    const data = localStorage.getItem(`ogwXbet_${username}`);
+                    return data ? JSON.parse(data) : null;
+                } catch (e) {
                     return null;
-                }
-            }
-            
-            function initializeSampleData() {
-                // Initialize events if not exists
-                if (!localStorage.getItem('ogwXbet_events')) {
-                    const sampleEvents = [
-                        {
-                            id: '1',
-                            title: 'OGW Championship Finals',
-                            teamA: 'Alpha Squad',
-                            teamB: 'Beta Brigade',
-                            date: '2023-12-15T20:00:00',
-                            category: 'upcoming',
-                            oddsA: 2.10,
-                            oddsDraw: 3.25,
-                            oddsB: 2.80,
-                            createdBy: 'System',
-                            createdAt: new Date().toISOString()
-                        },
-                        {
-                            id: '2',
-                            title: 'Winter Showdown',
-                            teamA: 'Cold Fusion',
-                            teamB: 'Firestorm',
-                            date: '2023-12-18T18:30:00',
-                            category: 'upcoming',
-                            oddsA: 1.85,
-                            oddsDraw: 3.40,
-                            oddsB: 3.75,
-                            createdBy: 'System',
-                            createdAt: new Date().toISOString()
-                        }
-                    ];
-                    
-                    localStorage.setItem('ogwXbet_events', JSON.stringify(sampleEvents));
-                }
-                
-                // Initialize Whitte4 account if not exists
-                if (!localStorage.getItem('ogwXbet_Whitte4')) {
-                    const whitte4Account = {
-                        token: 'Whitte4ModToken123',
-                        creationDate: new Date().toISOString(),
-                        webhook: 'https://discord.com/api/webhooks/sample',
-                        bets: [],
-                        isModerator: true
-                    };
-                    
-                    localStorage.setItem('ogwXbet_Whitte4', JSON.stringify(whitte4Account));
                 }
             }
             
@@ -1707,63 +1389,41 @@
                 const currentUser = sessionStorage.getItem('ogwXbet_currentUser');
                 const loginTime = sessionStorage.getItem('ogwXbet_loginTime');
                 
-                // Check if session is still valid (24 hours)
                 if (currentUser && loginTime) {
                     const now = new Date().getTime();
-                    const sessionDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+                    const sessionDuration = 24 * 60 * 60 * 1000;
                     
                     if (now - parseInt(loginTime) < sessionDuration) {
-                        // Get account data to check moderator status
-                        const accountData = getAccountData(currentUser) || {};
-                        isModerator = accountData.isModerator || false;
-                        
-                        showDashboard(currentUser);
-                        return;
-                    } else {
-                        // Session expired
-                        sessionStorage.removeItem('ogwXbet_currentUser');
-                        sessionStorage.removeItem('ogwXbet_loginTime');
+                        const accountData = getAccountData(currentUser);
+                        if (accountData) {
+                            showDashboard(currentUser, accountData.isModerator);
+                            return;
+                        }
                     }
                 }
                 
                 showLoginPage();
             }
             
-            function showDashboard(username) {
+            function showDashboard(username, isModerator) {
                 loginPage.style.display = 'none';
                 dashboardPage.style.display = 'block';
                 document.getElementById('username-display').textContent = `Welcome, ${username}`;
                 
-                // Show moderator badge and admin tab if user is moderator
                 if (isModerator) {
                     moderatorBadge.classList.remove('hidden');
                     adminTab.classList.remove('hidden');
-                } else {
-                    moderatorBadge.classList.add('hidden');
-                    adminTab.classList.add('hidden');
                 }
                 
-                // Update account info if account tab is active
-                if (document.getElementById('account-tab').classList.contains('active')) {
-                    updateAccountInfo();
-                }
-                
-                // Load events if OGWs tab is active
-                if (document.getElementById('ogws-tab').classList.contains('active')) {
-                    loadEvents();
-                }
-                
-                // Update admin info if admin tab is active
-                if (document.getElementById('admin-tab').classList.contains('active')) {
-                    updateAdminInfo();
-                }
+                // Load initial content
+                loadEvents();
+                updateAdminInfo();
             }
             
             function showLoginPage() {
                 dashboardPage.style.display = 'none';
                 loginPage.style.display = 'flex';
                 
-                // Reset login form
                 document.getElementById('login-username').value = '';
                 document.getElementById('login-token').value = '';
                 document.getElementById('login-token').type = 'password';
@@ -1771,7 +1431,6 @@
                 loginStatus.textContent = '';
                 loginStatus.className = 'status';
                 
-                // Make sure login form is visible
                 accountCreationSection.classList.add('hidden');
                 loginSection.classList.remove('hidden');
             }
@@ -1783,73 +1442,15 @@
                 const accountData = getAccountData(username);
                 if (!accountData) return;
                 
-                // Update account information
-                accountUsername.textContent = username;
-                accountCreationDate.textContent = new Date(accountData.creationDate).toLocaleDateString();
-                
-                // Calculate betting stats
-                const bets = accountData.bets || [];
-                totalBets.textContent = bets.length;
-                
-                if (bets.length > 0) {
-                    const wonBets = bets.filter(bet => bet.status === 'won').length;
-                    const winRate = Math.round((wonBets / bets.length) * 100);
-                    winningRate.textContent = `${winRate}%`;
-                    
-                    // Display bets
-                    displayBets(bets);
-                } else {
-                    winningRate.textContent = '0%';
-                    betsList.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-clipboard-list"></i>
-                            <h3>No Bets Yet</h3>
-                            <p>You haven't placed any bets yet. Visit the OGWs tab to get started!</p>
-                        </div>
-                    `;
-                }
-            }
-            
-            function displayBets(bets) {
-                if (bets.length === 0) {
-                    betsList.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-clipboard-list"></i>
-                            <h3>No Bets Yet</h3>
-                            <p>You haven't placed any bets yet. Visit the OGWs tab to get started!</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                let betsHTML = '';
-                bets.forEach(bet => {
-                    let statusClass = 'status-pending';
-                    if (bet.status === 'won') statusClass = 'status-won';
-                    if (bet.status === 'lost') statusClass = 'status-lost';
-                    
-                    betsHTML += `
-                        <div class="bet-item">
-                            <div class="bet-info">
-                                <div class="bet-event">${bet.event}</div>
-                                <div class="bet-details">
-                                    Prediction: ${bet.prediction} | Amount: ${bet.amount} | Odds: ${bet.odds}
-                                </div>
-                            </div>
-                            <div class="bet-status ${statusClass}">
-                                ${bet.status.charAt(0).toUpperCase() + bet.status.slice(1)}
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                betsList.innerHTML = betsHTML;
+                document.getElementById('account-username').textContent = username;
+                document.getElementById('account-creation-date').textContent = new Date(accountData.creationDate).toLocaleDateString();
+                document.getElementById('total-bets').textContent = accountData.bets ? accountData.bets.length : 0;
+                document.getElementById('winning-rate').textContent = '0%';
             }
             
             function updateAdminInfo() {
-                // Count total users
+                // Count users
                 let userCount = 0;
-                let totalBetsCount = 0;
                 let accountsHTML = '';
                 
                 for (let i = 0; i < localStorage.length; i++) {
@@ -1861,127 +1462,109 @@
                             if (!accountData) continue;
                             
                             const username = key.replace('ogwXbet_', '');
-                            const bets = accountData.bets || [];
-                            totalBetsCount += bets.length;
                             
                             accountsHTML += `
                                 <tr>
                                     <td>${username}</td>
                                     <td>${new Date(accountData.creationDate).toLocaleDateString()}</td>
-                                    <td>${bets.length}</td>
                                     <td>${accountData.isModerator ? '<span class="moderator-badge">MODERATOR</span>' : 'User'}</td>
                                 </tr>
                             `;
                         } catch (error) {
-                            console.error('Error processing account:', key, error);
+                            console.log('Skipping invalid account data');
                         }
                     }
                 }
                 
                 // Update admin stats
-                totalUsers.textContent = userCount;
+                document.getElementById('total-users').textContent = userCount;
                 
                 try {
-                    const events = JSON.parse(localStorage.getItem('ogwXbet_events') || '[]');
-                    totalEvents.textContent = events.length;
-                    
-                    // Count active bets (for now, we'll use a placeholder)
-                    const activeBetsCount = events.filter(event => event.category === 'active').length * 5; // Placeholder
-                    activeBets.textContent = activeBetsCount;
+                    const events = window.latestEvents || [];
+                    document.getElementById('total-events').textContent = events.length;
+                    document.getElementById('active-bets').textContent = '0';
                 } catch (error) {
-                    console.error('Error loading events:', error);
-                    totalEvents.textContent = '0';
-                    activeBets.textContent = '0';
+                    document.getElementById('total-events').textContent = '0';
+                    document.getElementById('active-bets').textContent = '0';
                 }
                 
-                totalBetsAdmin.textContent = totalBetsCount;
-                
                 // Update accounts table
-                accountsTableBody.innerHTML = accountsHTML || `
+                document.getElementById('accounts-table-body').innerHTML = accountsHTML || `
                     <tr>
-                        <td colspan="4" style="text-align: center; color: var(--text-secondary);">No accounts found</td>
+                        <td colspan="3" style="text-align: center; color: var(--text-secondary);">No accounts found</td>
                     </tr>
                 `;
             }
             
-            function loadEvents() {
-                try {
-                    const events = JSON.parse(localStorage.getItem('ogwXbet_events') || '[]');
-                    
-                    // Clear existing events
-                    upcomingEvents.innerHTML = '';
-                    activeEvents.innerHTML = '';
-                    endedEvents.innerHTML = '';
-                    
-                    if (events.length === 0) {
-                        const emptyHTML = `
-                            <div class="empty-state">
-                                <i class="fas fa-calendar-times"></i>
-                                <h3>No Events Available</h3>
-                                <p>Check back later for OGW events.</p>
-                            </div>
-                        `;
-                        upcomingEvents.innerHTML = emptyHTML;
-                        activeEvents.innerHTML = emptyHTML;
-                        endedEvents.innerHTML = emptyHTML;
-                        return;
-                    }
-                    
-                    // Sort events by date
-                    events.sort((a, b) => new Date(a.date) - new Date(b.date));
-                    
-                    // Group events by category
-                    const upcoming = events.filter(event => event.category === 'upcoming');
-                    const active = events.filter(event => event.category === 'active');
-                    const ended = events.filter(event => event.category === 'ended');
-                    
-                    // Display events
-                    displayEvents(upcoming, upcomingEvents);
-                    displayEvents(active, activeEvents);
-                    displayEvents(ended, endedEvents);
-                    
-                    // Show empty state if no events in category
-                    if (upcoming.length === 0) {
-                        upcomingEvents.innerHTML = `
-                            <div class="empty-state">
-                                <i class="fas fa-calendar-times"></i>
-                                <h3>No Upcoming Events</h3>
-                                <p>Check back later for upcoming OGW events.</p>
-                            </div>
-                        `;
-                    }
-                    
-                    if (active.length === 0) {
-                        activeEvents.innerHTML = `
-                            <div class="empty-state">
-                                <i class="fas fa-calendar-times"></i>
-                                <h3>No Active Events</h3>
-                                <p>There are currently no active OGW events.</p>
-                            </div>
-                        `;
-                    }
-                    
-                    if (ended.length === 0) {
-                        endedEvents.innerHTML = `
-                            <div class="empty-state">
-                                <i class="fas fa-calendar-times"></i>
-                                <h3>No Ended Events</h3>
-                                <p>Check back later for completed OGW events.</p>
-                            </div>
-                        `;
-                    }
-                } catch (error) {
-                    console.error('Error loading events:', error);
-                    const errorHTML = `
+            // Display events based on latest data from Firebase
+            window.displayFirebaseEvents = function(events) {
+                // Clear existing events
+                document.getElementById('upcoming-events').innerHTML = '';
+                document.getElementById('active-events').innerHTML = '';
+                document.getElementById('ended-events').innerHTML = '';
+                
+                if (!events || events.length === 0) {
+                    const emptyHTML = `
                         <div class="empty-state">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <h3>Error Loading Events</h3>
-                            <p>There was an error loading events. Please try refreshing the page.</p>
+                            <i class="fas fa-calendar-times"></i>
+                            <h3>No Events Available</h3>
+                            <p>Check back later for OGW events.</p>
                         </div>
                     `;
-                    upcomingEvents.innerHTML = errorHTML;
-                    activeEvents.innerHTML = errorHTML;
-                    endedEvents.innerHTML = errorHTML;
+                    document.getElementById('upcoming-events').innerHTML = emptyHTML;
+                    document.getElementById('active-events').innerHTML = emptyHTML;
+                    document.getElementById('ended-events').innerHTML = emptyHTML;
+                    return;
+                }
+                
+                // Group events by category
+                const upcoming = events.filter(event => event.category === 'upcoming');
+                const active = events.filter(event => event.category === 'active');
+                const ended = events.filter(event => event.category === 'ended');
+                
+                // Display events
+                displayEvents(upcoming, document.getElementById('upcoming-events'));
+                displayEvents(active, document.getElementById('active-events'));
+                displayEvents(ended, document.getElementById('ended-events'));
+                
+                // Show empty state if no events in category
+                if (upcoming.length === 0) {
+                    document.getElementById('upcoming-events').innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-calendar-times"></i>
+                            <h3>No Upcoming Events</h3>
+                            <p>Check back later for upcoming OGW events.</p>
+                        </div>
+                    `;
+                }
+                
+                if (active.length === 0) {
+                    document.getElementById('active-events').innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-calendar-times"></i>
+                            <h3>No Active Events</h3>
+                            <p>There are currently no active OGW events.</p>
+                        </div>
+                    `;
+                }
+                
+                if (ended.length === 0) {
+                    document.getElementById('ended-events').innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-calendar-times"></i>
+                            <h3>No Ended Events</h3>
+                            <p>Check back later for completed OGW events.</p>
+                        </div>
+                    `;
+                }
+            };
+
+            function loadEvents() {
+                try {
+                    const events = window.latestEvents || [];
+                    window.displayFirebaseEvents(events);
+                } catch (error) {
+                    console.log('Error loading events');
                 }
             }
             
@@ -2029,6 +1612,43 @@
                 });
                 
                 container.innerHTML = eventsHTML;
+            }
+        });
+    </script>
+
+    <!-- Firebase Events Sync Script -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getDatabase, ref, onValue, push, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDmJpMD7iQSZ_Jtr-mHEYIP4dVRli-Ym8Y",
+            authDomain: "ogwxbet.firebaseapp.com",
+            databaseURL: "https://ogwxbet-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "ogwxbet",
+            storageBucket: "ogwxbet.firebasestorage.app",
+            messagingSenderId: "350350599882",
+            appId: "1:350350599882:web:cf13802474026f08687633"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const eventsRef = ref(db, "events");
+
+        // Save new event to Firebase
+        window.saveEventToFirebase = function(eventObj) {
+            const newRef = push(eventsRef);
+            set(newRef, eventObj);
+        };
+
+        // Subscribe to events in Firebase
+        onValue(eventsRef, snapshot => {
+            const data = snapshot.val() || {};
+            const events = Object.values(data);
+            window.latestEvents = events;
+
+            if (window.displayFirebaseEvents) {
+                window.displayFirebaseEvents(events);
             }
         });
     </script>
