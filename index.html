@@ -263,7 +263,11 @@
                     <div class="admin-stats">
                         <div class="admin-stat">
                             <div class="admin-stat-value" id="total-users">0</div>
-                            <div class="admin-stat-label">Total Users</div>
+                            <div class="admin-stat-label">Active Users</div>
+                        </div>
+                        <div class="admin-stat">
+                            <div class="admin-stat-value" id="deleted-users">0</div>
+                            <div class="admin-stat-label">Deleted Users</div>
                         </div>
                         <div class="admin-stat">
                             <div class="admin-stat-value" id="total-events">0</div>
@@ -277,8 +281,8 @@
                 </div>
                 
                 <div class="admin-section">
-                    <h3><i class="fas fa-users"></i> User Accounts</h3>
-                    <p style="margin-bottom: 15px; color: var(--text-secondary);">View all registered user accounts.</p>
+                    <h3><i class="fas fa-users"></i> Active User Accounts</h3>
+                    <p style="margin-bottom: 15px; color: var(--text-secondary);">View and manage all active user accounts.</p>
                     
                     <div class="accounts-table-container">
                         <table class="accounts-table">
@@ -287,9 +291,30 @@
                                     <th>Username</th>
                                     <th>Account Created</th>
                                     <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="accounts-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <h3><i class="fas fa-trash-alt"></i> Deleted Accounts</h3>
+                    <p style="margin-bottom: 15px; color: var(--text-secondary);">Restore previously deleted user accounts.</p>
+                    
+                    <div class="accounts-table-container">
+                        <table class="accounts-table">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Account Created</th>
+                                    <th>Deleted At</th>
+                                    <th>Deleted By</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="deleted-accounts-table-body"></tbody>
                         </table>
                     </div>
                 </div>
