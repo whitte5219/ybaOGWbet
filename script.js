@@ -249,6 +249,75 @@ document.addEventListener('DOMContentLoaded', function () {
         return result.button;
     }
 
+    // ===== NEW: SHOW FORM POPUP FOR SINGLE-FORM EDITING =====
+    async function showFormPopup(title, fields, confirmText = 'Save', cancelText = 'Cancel') {
+        return new Promise(resolve => {
+            if (!popupOverlay || !popupTitle || !popupMessage || !popupButtons) {
+                resolve(null);
+                return;
+            }
+
+            // Create form HTML
+            let formHTML = '';
+            fields.forEach(field => {
+                formHTML += `
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="popup-field-${field.name}" style="display: block; margin-bottom: 5px; color: var(--text-secondary);">
+                            ${field.label}
+                        </label>
+                        ${field.type === 'select' ? `
+                            <select id="popup-field-${field.name}" style="width: 100%; padding: 8px; border-radius: 6px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: var(--text);">
+                                ${field.options.map(opt => `
+                                    <option value="${opt.value}" ${field.value === opt.value ? 'selected' : ''}>${opt.label}</option>
+                                `).join('')}
+                            </select>
+                        ` : `
+                            <input type="${field.type}" id="popup-field-${field.name}" 
+                                   value="${field.value || ''}" 
+                                   style="width: 100%; padding: 8px; border-radius: 6px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: var(--text);"
+                                   ${field.placeholder ? `placeholder="${field.placeholder}"` : ''}>
+                        `}
+                    </div>
+                `;
+            });
+
+            popupTitle.textContent = title;
+            popupMessage.innerHTML = formHTML;
+            popupInput.classList.add('hidden');
+
+            popupButtons.innerHTML = '';
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = cancelText;
+            cancelBtn.classList.add('popup-btn', 'cancel');
+            cancelBtn.addEventListener('click', () => {
+                closePopup();
+                resolve(null);
+            });
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = confirmText;
+            confirmBtn.classList.add('popup-btn', 'confirm');
+            confirmBtn.addEventListener('click', () => {
+                const result = {};
+                fields.forEach(field => {
+                    const input = document.getElementById(`popup-field-${field.name}`);
+                    result[field.name] = field.type === 'select' ? input.value : input.value;
+                });
+                closePopup();
+                resolve(result);
+            });
+
+            popupButtons.appendChild(cancelBtn);
+            popupButtons.appendChild(confirmBtn);
+
+            popupOverlay.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                popupOverlay.classList.add('active');
+            });
+        });
+    }
+
     // ===============================
 
     checkLoginStatus();
@@ -475,7 +544,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // ===== EVENT CREATION (unchanged, but uses currentAccount for createdBy) =====
+    // ===== EVENT CREATION (UPDATED: REMOVED "ENDED" CATEGORY) =====
     addEventBtn.addEventListener('click', function () {
         const title = document.getElementById('event-title').value.trim();
         const teamA = document.getElementById('team-a').value.trim();
@@ -967,7 +1036,7 @@ document.addEventListener('DOMContentLoaded', function () {
         list.innerHTML = html;
     }
 
-    // Public so Firebase callback can trigger
+    // ===== UPDATED: DISPLAY EVENTS WITH PREDICTION STATUS =====
     window.displayFirebaseEvents = function (events) {
         document.getElementById('upcoming-events').innerHTML = '';
         document.getElementById('active-events').innerHTML = '';
@@ -991,9 +1060,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const active = events.filter(event => event.category === 'active');
         const ended = events.filter(event => event.category === 'ended');
 
-        displayEvents(upcoming, document.getElementById('upcoming-events'));
-        displayEvents(active, document.getElementById('active-events'));
-        displayEvents(ended, document.getElementById('ended-events'));
+        displayEvents(upcoming, document.getElementById('upcoming-events'), 'upcoming');
+        displayEvents(active, document.getElementById('active-events'), 'active');
+        displayEvents(ended, document.getElementById('ended-events'), 'ended');
 
         if (upcoming.length === 0) {
             document.getElementById('upcoming-events').innerHTML = `
@@ -1033,7 +1102,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function displayEvents(events, container) {
+    // ===== UPDATED: DISPLAY EVENTS WITH PREDICTION STATUS =====
+    function displayEvents(events, container, category) {
         if (!events || events.length === 0) return;
         const isMod = isCurrentUserModerator();
         let eventsHTML = '';
@@ -1041,6 +1111,21 @@ document.addEventListener('DOMContentLoaded', function () {
         events.forEach(event => {
             const menuHTML = isMod
                 ? `<div class="event-menu" data-event-id="${event.id}"><i class="fas fa-ellipsis-v"></i></div>`
+                : '';
+
+            // Get user's prediction for this event if exists
+            const userPrediction = currentAccount && Array.isArray(currentAccount.predictions) 
+                ? currentAccount.predictions.find(p => p.eventId === event.id)
+                : null;
+
+            // Show prediction status in ended events
+            const predictionStatusHTML = category === 'ended' && userPrediction 
+                ? `<div class="prediction-result" style="margin-top: 10px; padding: 8px; border-radius: 6px; background: ${userPrediction.correct ? 'rgba(76,175,80,0.1)' : 'rgba(244,67,54,0.1)'}; border: 1px solid ${userPrediction.correct ? 'rgba(76,175,80,0.3)' : 'rgba(244,67,54,0.3)'};">
+                    <strong>Your Prediction:</strong> ${userPrediction.choice === 'A' ? event.teamA : event.teamB} 
+                    <span style="color: ${userPrediction.correct ? '#4caf50' : '#f44336'}; margin-left: 10px;">
+                        ${userPrediction.correct ? '✓ Correct' : '✗ Wrong'}
+                    </span>
+                   </div>`
                 : '';
 
             eventsHTML += `
@@ -1078,6 +1163,8 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <div class="odd-value">${event.oddsB}</div>
                             </div>
                         </div>
+                        ${predictionStatusHTML}
+                        ${category !== 'ended' ? `
                         <div class="prediction-actions">
                             <button class="predict-btn" data-event-id="${event.id}" data-choice="A">
                                 Predict ${event.teamA} win
@@ -1086,6 +1173,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 Predict ${event.teamB} win
                             </button>
                         </div>
+                        ` : ''}
                     </div>
                 </div>
             `;
@@ -1111,25 +1199,25 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Moderator event menu (custom popup)
+    // ===== UPDATED: EVENT MENU WITH 3 OPTIONS =====
     async function handleEventMenu(eventId) {
         const action = await showChoicePopup(
             'Event Actions',
             'Choose what you want to do with this event:',
             [
-                { label: 'Move', value: 'move' },
                 { label: 'Edit', value: 'edit' },
-                { label: 'End Event', value: 'end' }
+                { label: 'Move', value: 'move' },
+                { label: 'Delete', value: 'delete' }
             ]
         );
         if (!action) return;
 
-        if (action === 'move') {
-            await moveEvent(eventId);
-        } else if (action === 'edit') {
-            await editEvent(eventId);
-        } else if (action === 'end') {
-            await endEvent(eventId);
+        if (action === 'edit') {
+            await editEventFull(eventId);
+        } else if (action === 'move') {
+            await moveEventSmart(eventId);
+        } else if (action === 'delete') {
+            await deleteEvent(eventId);
         }
     }
 
@@ -1138,7 +1226,97 @@ document.addEventListener('DOMContentLoaded', function () {
         return events.find(ev => ev.id === eventId);
     }
 
-    async function moveEvent(eventId) {
+    // ===== NEW: SINGLE-FORM EDIT FUNCTION =====
+    async function editEventFull(eventId) {
+        const eventObj = findEventById(eventId);
+        if (!eventObj) return;
+
+        const formFields = [
+            {
+                name: 'title',
+                label: 'Event Title',
+                type: 'text',
+                value: eventObj.title || ''
+            },
+            {
+                name: 'teamA',
+                label: 'Team A',
+                type: 'text',
+                value: eventObj.teamA || ''
+            },
+            {
+                name: 'teamB',
+                label: 'Team B',
+                type: 'text',
+                value: eventObj.teamB || ''
+            },
+            {
+                name: 'date',
+                label: 'Event Date & Time',
+                type: 'datetime-local',
+                value: eventObj.date || ''
+            },
+            {
+                name: 'category',
+                label: 'Category',
+                type: 'select',
+                value: eventObj.category || 'upcoming',
+                options: [
+                    { label: 'Upcoming', value: 'upcoming' },
+                    { label: 'Active', value: 'active' },
+                    { label: 'Ended', value: 'ended' }
+                ]
+            },
+            {
+                name: 'oddsA',
+                label: 'Odds Team A',
+                type: 'number',
+                value: eventObj.oddsA || 2.10,
+                placeholder: '2.10'
+            },
+            {
+                name: 'oddsDraw',
+                label: 'Odds Draw',
+                type: 'number',
+                value: eventObj.oddsDraw || 3.25,
+                placeholder: '3.25'
+            },
+            {
+                name: 'oddsB',
+                label: 'Odds Team B',
+                type: 'number',
+                value: eventObj.oddsB || 2.80,
+                placeholder: '2.80'
+            }
+        ];
+
+        const result = await showFormPopup('Edit Event', formFields, 'Save Changes', 'Cancel');
+        
+        if (!result) return;
+
+        // Update event object with new values
+        Object.keys(result).forEach(key => {
+            if (key === 'oddsA' || key === 'oddsDraw' || key === 'oddsB') {
+                eventObj[key] = parseFloat(result[key]) || eventObj[key];
+            } else {
+                eventObj[key] = result[key];
+            }
+        });
+
+        const key = window.eventKeyMap[eventId];
+        if (!key) return;
+
+        try {
+            await set(ref(db, `events/${key}`), eventObj);
+            await showMessagePopup('Success', 'Event updated successfully!');
+        } catch (err) {
+            console.error('Failed to update event:', err);
+            await showMessagePopup('Error', 'Failed to update event.');
+        }
+    }
+
+    // ===== NEW: SMART MOVE FUNCTION WITH REPUTATION =====
+    async function moveEventSmart(eventId) {
         const eventObj = findEventById(eventId);
         if (!eventObj) return;
 
@@ -1148,110 +1326,92 @@ document.addEventListener('DOMContentLoaded', function () {
             [
                 { label: 'Upcoming', value: 'upcoming' },
                 { label: 'Active', value: 'active' },
-                { label: 'Ended', value: 'ended' }
+                { label: 'Ended (Resolve Predictions)', value: 'ended' }
             ]
         );
         if (!newCategory) return;
 
+        // If moving to ended, we need to resolve predictions
+        if (newCategory === 'ended') {
+            const winnerChoice = await showChoicePopup(
+                'End Event & Resolve Predictions',
+                `Who won "${eventObj.title}"? This will award reputation to correct predictions.`,
+                [
+                    { label: eventObj.teamA, value: 'A' },
+                    { label: eventObj.teamB, value: 'B' }
+                ]
+            );
+            if (!winnerChoice) return;
+
+            // Resolve predictions and award reputation
+            await resolveEventPredictions(eventObj, winnerChoice);
+
+            // Log to eventLog
+            const winnerName = winnerChoice === 'A' ? eventObj.teamA : eventObj.teamB;
+            const moderatorName = currentAccount && currentAccount.username ? currentAccount.username : 'Unknown';
+            
+            const logEntry = {
+                id: eventObj.id,
+                title: eventObj.title,
+                teamA: eventObj.teamA,
+                teamB: eventObj.teamB,
+                date: eventObj.date,
+                winner: winnerName,
+                endedBy: moderatorName,
+                endedAt: new Date().toISOString()
+            };
+
+            try {
+                await push(eventLogRef, logEntry);
+            } catch (err) {
+                console.error('Failed to log event:', err);
+            }
+        }
+
+        // Update event category
         eventObj.category = newCategory;
         const key = window.eventKeyMap[eventId];
         if (!key) return;
 
-        set(ref(db, `events/${key}`), eventObj);
+        try {
+            await set(ref(db, `events/${key}`), eventObj);
+            await showMessagePopup('Success', `Event moved to ${newCategory} successfully!`);
+        } catch (err) {
+            console.error('Failed to move event:', err);
+            await showMessagePopup('Error', 'Failed to move event.');
+        }
     }
 
-    async function editEvent(eventId) {
+    // ===== NEW: DELETE EVENT FUNCTION =====
+    async function deleteEvent(eventId) {
         const eventObj = findEventById(eventId);
         if (!eventObj) return;
 
-        const newTitle = await showInputPopup(
-            'Edit Title',
-            'Update event title:',
-            eventObj.title || ''
+        const confirmDelete = await showConfirmPopup(
+            'Delete Event',
+            `Are you sure you want to delete "${eventObj.title}"? This will move it to the event log.`,
+            'Delete Event',
+            'Cancel'
         );
-        if (newTitle === null) return;
 
-        const newTeamA = await showInputPopup(
-            'Edit Team A',
-            'Update Team A name:',
-            eventObj.teamA || ''
-        );
-        if (newTeamA === null) return;
+        if (!confirmDelete) return;
 
-        const newTeamB = await showInputPopup(
-            'Edit Team B',
-            'Update Team B name:',
-            eventObj.teamB || ''
-        );
-        if (newTeamB === null) return;
-
-        const newDate = await showInputPopup(
-            'Edit Date & Time',
-            'Update date (YYYY-MM-DDTHH:MM):',
-            eventObj.date || ''
-        );
-        if (newDate === null) return;
-
-        const newCategory = await showChoicePopup(
-            'Edit Category',
-            'Update the category:',
-            [
-                { label: 'Upcoming', value: 'upcoming' },
-                { label: 'Active', value: 'active' },
-                { label: 'Ended', value: 'ended' }
-            ]
-        );
-        if (!newCategory) return;
-
-        eventObj.title = newTitle;
-        eventObj.teamA = newTeamA;
-        eventObj.teamB = newTeamB;
-        eventObj.date = newDate;
-        eventObj.category = newCategory;
-
-        const key = window.eventKeyMap[eventId];
-        if (!key) return;
-
-        set(ref(db, `events/${key}`), eventObj);
-    }
-
-    async function endEvent(eventId) {
-        const eventObj = findEventById(eventId);
-        if (!eventObj) return;
-
-        const winnerChoice = await showChoicePopup(
-            'End Event',
-            `Who won "${eventObj.title}"?`,
-            [
-                { label: eventObj.teamA, value: 'A' },
-                { label: eventObj.teamB, value: 'B' }
-            ]
-        );
-        if (!winnerChoice) return;
-
-        const choice = winnerChoice;
-        const winnerName = choice === 'A' ? eventObj.teamA : eventObj.teamB;
-        const moderatorName = currentAccount && currentAccount.username ? currentAccount.username : 'Unknown';
-
-        // resolve predictions and reputation for all accounts
-        await resolveEventPredictions(eventObj, choice);
-
-        // log to eventLog
+        // Log to eventLog before deleting
         const logEntry = {
             id: eventObj.id,
             title: eventObj.title,
             teamA: eventObj.teamA,
             teamB: eventObj.teamB,
             date: eventObj.date,
-            winner: winnerName,
-            endedBy: moderatorName,
-            endedAt: new Date().toISOString()
+            deletedBy: currentAccount && currentAccount.username ? currentAccount.username : 'Unknown',
+            deletedAt: new Date().toISOString(),
+            reason: 'Manually deleted by moderator'
         };
 
         try {
             await push(eventLogRef, logEntry);
         } catch (err) {
-            console.error('Failed to log event:', err);
+            console.error('Failed to log event deletion:', err);
         }
 
         const key = window.eventKeyMap[eventId];
@@ -1259,8 +1419,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             await remove(ref(db, `events/${key}`));
+            await showMessagePopup('Success', 'Event deleted successfully!');
         } catch (err) {
             console.error('Failed to delete event:', err);
+            await showMessagePopup('Error', 'Failed to delete event.');
         }
     }
 
@@ -1318,6 +1480,14 @@ document.addEventListener('DOMContentLoaded', function () {
             await showMessagePopup(
                 'Error',
                 'Event not found.'
+            );
+            return;
+        }
+
+        if (eventObj.category === 'ended') {
+            await showMessagePopup(
+                'Event Ended',
+                'This event has already ended. You cannot make new predictions.'
             );
             return;
         }
