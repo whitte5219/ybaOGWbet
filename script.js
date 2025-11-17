@@ -1120,11 +1120,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Show prediction status in ended events
             const predictionStatusHTML = category === 'ended' && userPrediction 
-                ? `<div class="prediction-result" style="margin-top: 10px; padding: 8px; border-radius: 6px; background: ${userPrediction.correct ? 'rgba(76,175,80,0.1)' : 'rgba(244,67,54,0.1)'}; border: 1px solid ${userPrediction.correct ? 'rgba(76,175,80,0.3)' : 'rgba(244,67,54,0.3)'};">
-                    <strong>Your Prediction:</strong> ${userPrediction.choice === 'A' ? event.teamA : event.teamB} 
-                    <span style="color: ${userPrediction.correct ? '#4caf50' : '#f44336'}; margin-left: 10px;">
-                        ${userPrediction.correct ? '✓ Correct' : '✗ Wrong'}
-                    </span>
+                ? `<div class="prediction-result ${userPrediction.correct ? 'correct' : 'wrong'}">
+                      <strong>Your Prediction:</strong> ${userPrediction.choice === 'A' ? event.teamA : event.teamB} 
+                      <span style="margin-left: 8px;">
+                          ${userPrediction.correct ? '✓ Correct' : '✗ Wrong'}
+                      </span>
                    </div>`
                 : '';
 
@@ -1345,6 +1345,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Resolve predictions and award reputation
             await resolveEventPredictions(eventObj, winnerChoice);
+
+            // Show success message
+            await showMessagePopup(
+                'Predictions Resolved', 
+                `Event ended! Reputation has been awarded to users with correct predictions.`
+            );
 
             // Log to eventLog
             const winnerName = winnerChoice === 'A' ? eventObj.teamA : eventObj.teamB;
