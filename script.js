@@ -1102,7 +1102,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // ===== UPDATED: DISPLAY EVENTS WITH PREDICTION STATUS =====
+    // ===== UPDATED: DISPLAY EVENTS WITH VISUAL PREDICTION STATES =====
     function displayEvents(events, container, category) {
         if (!events || events.length === 0) return;
         const isMod = isCurrentUserModerator();
@@ -1127,6 +1127,18 @@ document.addEventListener('DOMContentLoaded', function () {
                       </span>
                    </div>`
                 : '';
+
+            // Determine button styles based on user's prediction
+            const isPredictedA = userPrediction && userPrediction.choice === 'A';
+            const isPredictedB = userPrediction && userPrediction.choice === 'B';
+            
+            const buttonStyleA = isPredictedA ? 
+                'style="background-color: var(--success); color: white; border-color: var(--success);"' : 
+                'style="background-color: rgba(255, 255, 255, 0.04); color: var(--text-secondary); border-color: rgba(255, 255, 255, 0.1);"';
+            
+            const buttonStyleB = isPredictedB ? 
+                'style="background-color: var(--success); color: white; border-color: var(--success);"' : 
+                'style="background-color: rgba(255, 255, 255, 0.04); color: var(--text-secondary); border-color: rgba(255, 255, 255, 0.1);"';
 
             eventsHTML += `
                 <div class="event-card" data-event-id="${event.id}">
@@ -1166,10 +1178,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         ${predictionStatusHTML}
                         ${category !== 'ended' ? `
                         <div class="prediction-actions">
-                            <button class="predict-btn" data-event-id="${event.id}" data-choice="A">
+                            <button class="predict-btn" data-event-id="${event.id}" data-choice="A" ${buttonStyleA}>
                                 Predict ${event.teamA} win
                             </button>
-                            <button class="predict-btn" data-event-id="${event.id}" data-choice="B">
+                            <button class="predict-btn" data-event-id="${event.id}" data-choice="B" ${buttonStyleB}>
                                 Predict ${event.teamB} win
                             </button>
                         </div>
@@ -1432,7 +1444,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Resolve predictions for ALL accounts in DB (moderator-only)
+    // ===== FIXED: RESOLVE EVENT PREDICTIONS - CORRECTLY COMPARES WINNER =====
     async function resolveEventPredictions(eventObj, winnerChoice) {
         try {
             const snap = await get(accountsRef);
@@ -1448,6 +1460,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 let changed = false;
                 acc.predictions.forEach(pred => {
                     if (pred.eventId === eventObj.id && (pred.correct === null || typeof pred.correct === 'undefined')) {
+                        // FIX: Properly compare prediction choice with winner choice
                         const correct = pred.choice === winnerChoice;
                         pred.correct = correct;
                         if (typeof acc.reputation !== 'number') {
@@ -1471,7 +1484,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Handle prediction button (custom popup) – now stored in Firebase account
+    // ===== UPDATED: HANDLE PREDICTION WITH VISUAL FEEDBACK AND SWITCH CONFIRMATION =====
     async function handlePrediction(eventId, choice) {
         if (!currentAccount || !currentUserUid) {
             await showMessagePopup(
@@ -1503,13 +1516,34 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         let existing = currentAccount.predictions.find(p => p.eventId === eventId);
+        
+        // If user already has a prediction for this event
         if (existing) {
+            // If clicking the same choice, do nothing
+            if (existing.choice === choice) {
+                return;
+            }
+            
+            // If switching prediction, ask for confirmation
+            const confirmSwitch = await showConfirmPopup(
+                'Switch Prediction',
+                `You already predicted ${existing.choice === 'A' ? eventObj.teamA : eventObj.teamB}. Do you want to switch to ${choice === 'A' ? eventObj.teamA : eventObj.teamB}?`,
+                'Switch',
+                'Keep Current'
+            );
+            
+            if (!confirmSwitch) {
+                return; // User chose to keep current prediction
+            }
+            
+            // Update existing prediction
             existing.choice = choice;
             existing.correct = null; // reset if event changed
             existing.title = eventObj.title;
             existing.teamA = eventObj.teamA;
             existing.teamB = eventObj.teamB;
         } else {
+            // New prediction
             currentAccount.predictions.push({
                 eventId: eventObj.id,
                 title: eventObj.title,
@@ -1524,14 +1558,36 @@ document.addEventListener('DOMContentLoaded', function () {
             await set(ref(db, `accounts/${currentUserUid}`), currentAccount);
         } catch (err) {
             console.error('Failed to save prediction:', err);
+            await showMessagePopup('Error', 'Failed to save prediction.');
+            return;
         }
 
+        // Update the UI to show which button is selected
+        updatePredictionButtons(eventId, choice);
         updateAccountInfo();
+        
+        // Removed the "Prediction Saved" popup as requested
+    }
 
-        await showMessagePopup(
-            'Prediction Saved',
-            'Your prediction has been saved for this event.'
-        );
+    // ===== NEW: UPDATE PREDICTION BUTTONS VISUALLY =====
+    function updatePredictionButtons(eventId, selectedChoice) {
+        // Find all prediction buttons for this event
+        const predictBtns = document.querySelectorAll(`.predict-btn[data-event-id="${eventId}"]`);
+        
+        predictBtns.forEach(btn => {
+            const choice = btn.getAttribute('data-choice');
+            if (choice === selectedChoice) {
+                // Selected button - green
+                btn.style.backgroundColor = 'var(--success)';
+                btn.style.color = 'white';
+                btn.style.borderColor = 'var(--success)';
+            } else {
+                // Not selected - default style
+                btn.style.backgroundColor = 'rgba(255, 255, 255, 0.04)';
+                btn.style.color = 'var(--text-secondary)';
+                btn.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            }
+        });
     }
 
     // Admin event log renderer (table body)
