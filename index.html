@@ -206,13 +206,16 @@
                 <h2>Account Settings</h2>
                 <p style="color: var(--text-secondary); margin-bottom: 20px;">Manage your account settings and view your betting history.</p>
                 
-                <!-- NEW: Profile Settings Section -->
+                <!-- Profile Settings Section -->
                 <div class="account-section">
                     <h3><i class="fas fa-user-edit"></i> Profile Settings</h3>
                     
                     <div class="profile-picture-section" style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
-                        <div class="current-avatar">
-                            <img id="profile-picture-preview" src="" alt="Profile Picture" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; background: var(--secondary); border: 2px solid var(--accent);">
+                        <div class="current-avatar" style="position: relative;">
+                            <img id="profile-picture-preview" src="" alt="Profile Picture" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; background: var(--secondary); border: 2px solid var(--accent); display: none;">
+                            <div id="profile-picture-placeholder" style="width: 80px; height: 80px; border-radius: 50%; background: var(--secondary); border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 0.8rem; text-align: center; padding: 5px;">
+                                No PFP
+                            </div>
                         </div>
                         <div style="flex: 1;">
                             <div class="form-group">
@@ -328,7 +331,7 @@
                 </div>
             </div>
 
-            <!-- NEW: Community Tab Content -->
+            <!-- Community Tab Content -->
             <div id="community-tab" class="tab-content">
                 <h2>Community</h2>
                 <p style="color: var(--text-secondary); margin-bottom: 20px;">Browse and search for other users on the platform.</p>
@@ -336,9 +339,9 @@
                 <div class="search-section" style="margin-bottom: 25px;">
                     <div class="form-group">
                         <label for="user-search">Search Users</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="user-search" placeholder="Enter username to search..." style="flex: 1;">
-                            <button class="btn" id="search-user-btn">
+                        <div style="display: flex; gap: 10px; align-items: flex-end;">
+                            <input type="text" id="user-search" placeholder="Enter username to search..." style="flex: 1; padding: 12px 15px;">
+                            <button class="btn" id="search-user-btn" style="width: auto; padding: 12px 20px;">
                                 <i class="fas fa-search"></i> Search
                             </button>
                         </div>
@@ -503,6 +506,22 @@
         </div>
     </div>
     <!-- END POPUP SYSTEM -->
+
+    <!-- 🔥 USER PROFILE POPUP -->
+    <div id="user-profile-popup" class="popup-overlay hidden">
+        <div class="popup-dialog" style="max-width: 500px;">
+            <div class="popup-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="profile-popup-username">User Profile</h3>
+                <button id="close-profile-popup" style="background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; padding: 5px;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="popup-body" id="profile-popup-content">
+                <!-- Profile content will be loaded here -->
+            </div>
+        </div>
+    </div>
+    <!-- END USER PROFILE POPUP -->
 
     <script type="module" src="script.js"></script>
 </body>
