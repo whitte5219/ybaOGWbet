@@ -42,6 +42,7 @@ const auth = getAuth(app);
 const eventsRef = ref(db, "events");
 const eventLogRef = ref(db, "eventLog");
 const accountsRef = ref(db, "accounts");
+const userSearchRef = ref(db, "userSearch"); // NEW: User search reference
 
 // Map of eventId -> firebase key
 window.eventKeyMap = {};
@@ -327,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ===== UPDATED: USER PROFILE POPUP SYSTEM =====
+    // ===== USER PROFILE POPUP SYSTEM =====
     function closeUserProfilePopup() {
         if (!userProfilePopup) return;
         userProfilePopup.classList.remove('active');
@@ -486,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ===== ACCOUNT CREATION (UPDATED WITH PROFILE FIELDS) =====
+    // ===== ACCOUNT CREATION (UPDATED WITH USERSEARCH SYNC) =====
     createAccountBtn.addEventListener('click', async function () {
         const username = document.getElementById('username').value.trim();
         const webhook = document.getElementById('webhook').value.trim();
@@ -537,6 +538,13 @@ document.addEventListener('DOMContentLoaded', function () {
             };
 
             await set(ref(db, `accounts/${uid}`), accountProfile);
+
+            // NEW: Also create user search data
+            await set(ref(db, `userSearch/${uid}`), {
+                username: username,
+                creationDate: accountProfile.creationDate,
+                profile: accountProfile.profile
+            });
 
             // Send token to Discord
             const payload = {
@@ -866,6 +874,39 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // ===== NEW: INITIALIZE USER SEARCH DATA =====
+    async function initializeUserSearch() {
+        if (!currentUserUid || !currentAccount) return;
+        
+        try {
+            // Check if user search data exists
+            const searchSnap = await get(ref(db, `userSearch/${currentUserUid}`));
+            
+            if (!searchSnap.exists()) {
+                // Create initial search data
+                await set(ref(db, `userSearch/${currentUserUid}`), {
+                    username: currentAccount.username,
+                    creationDate: currentAccount.creationDate,
+                    profile: currentAccount.profile || {}
+                });
+            } else {
+                // Update existing search data if needed
+                const searchData = searchSnap.val();
+                if (searchData.username !== currentAccount.username || 
+                    JSON.stringify(searchData.profile) !== JSON.stringify(currentAccount.profile || {})) {
+                    
+                    await set(ref(db, `userSearch/${currentUserUid}`), {
+                        username: currentAccount.username,
+                        creationDate: currentAccount.creationDate,
+                        profile: currentAccount.profile || {}
+                    });
+                }
+            }
+        } catch (err) {
+            console.error('Failed to initialize user search data:', err);
+        }
+    }
+
     // ===== PHASE 1: UPDATED PROFILE FUNCTIONS =====
     function updateProfilePicture() {
         const pictureUrl = document.getElementById('profile-picture-url').value.trim();
@@ -912,6 +953,7 @@ document.addEventListener('DOMContentLoaded', function () {
         preview.src = pictureUrl;
     }
 
+    // ===== UPDATED: SAVE PROFILE SETTINGS WITH USERSEARCH SYNC =====
     async function saveProfileSettings() {
         if (!currentAccount || !currentUserUid) return;
 
@@ -937,8 +979,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             };
 
-            // Save to Firebase
+            // Save to Firebase accounts
             await set(ref(db, `accounts/${currentUserUid}`), currentAccount);
+
+            // NEW: Also update user search data
+            await set(ref(db, `userSearch/${currentUserUid}`), {
+                username: currentAccount.username,
+                creationDate: currentAccount.creationDate,
+                profile: currentAccount.profile
+            });
 
             profileStatus.textContent = 'Profile settings saved successfully!';
             profileStatus.className = 'status success';
@@ -954,7 +1003,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // ===== UPDATED: SEARCH FUNCTION - NO PFP IN SEARCH RESULTS =====
+    // ===== UPDATED: SEARCH FUNCTION USING USERSEARCH NODE =====
     async function searchUsers() {
         const searchTerm = document.getElementById('user-search').value.trim().toLowerCase();
         const usersGrid = document.getElementById('users-grid');
@@ -979,21 +1028,17 @@ document.addEventListener('DOMContentLoaded', function () {
         `;
 
         try {
-            const snap = await get(accountsRef);
+            const snap = await get(userSearchRef);
             const results = [];
 
             if (snap.exists()) {
                 snap.forEach(childSnap => {
-                    const account = childSnap.val() || {};
-                    // FIXED: Skip deleted accounts and check if username matches search
-                    // Also ensure account has basic required fields
-                    if (!account.deleted && 
-                        account.username && 
-                        account.username.toLowerCase().includes(searchTerm) &&
-                        account.creationDate) {
+                    const userData = childSnap.val() || {};
+                    // Check if username matches search
+                    if (userData.username && userData.username.toLowerCase().includes(searchTerm)) {
                         results.push({
                             uid: childSnap.key,
-                            ...account
+                            ...userData
                         });
                     }
                 });
@@ -1102,6 +1147,9 @@ document.addEventListener('DOMContentLoaded', function () {
         loadEvents();
         updateAdminInfo();
         updateAccountInfo();
+        
+        // NEW: Initialize user search data
+        initializeUserSearch();
     }
 
     function showLoginPage() {
@@ -1297,7 +1345,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // ===== DELETE ACCOUNT FUNCTION =====
+    // ===== UPDATED: DELETE ACCOUNT WITH USERSEARCH REMOVAL =====
     async function deleteAccount(uid, username) {
         if (!isCurrentUserModerator()) return;
 
@@ -1320,6 +1368,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
             await update(ref(db, `accounts/${uid}`), updates);
 
+            // NEW: Remove from user search
+            await remove(ref(db, `userSearch/${uid}`));
+
             // Show success message
             await showMessagePopup(
                 'Account Deleted',
@@ -1338,7 +1389,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // ===== RESTORE ACCOUNT FUNCTION =====
+    // ===== UPDATED: RESTORE ACCOUNT WITH USERSEARCH ADDITION =====
     async function restoreAccount(uid, username) {
         if (!isCurrentUserModerator()) return;
 
@@ -1352,6 +1403,14 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!confirmRestore) return;
 
         try {
+            // Get the account data first
+            const accountSnap = await get(ref(db, `accounts/${uid}`));
+            if (!accountSnap.exists()) {
+                throw new Error('Account not found');
+            }
+            
+            const accountData = accountSnap.val();
+
             // Remove deletion markers to restore account
             const updates = {
                 deleted: false,
@@ -1360,6 +1419,13 @@ document.addEventListener('DOMContentLoaded', function () {
             };
 
             await update(ref(db, `accounts/${uid}`), updates);
+
+            // NEW: Add back to user search
+            await set(ref(db, `userSearch/${uid}`), {
+                username: accountData.username,
+                creationDate: accountData.creationDate,
+                profile: accountData.profile || {}
+            });
 
             // Show success message
             await showMessagePopup(
@@ -2074,5 +2140,48 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         tbody.innerHTML = html;
+    };
+
+    // ===== NEW: MIGRATION HELPER FOR EXISTING USERS =====
+    window.migrateExistingUsersToSearch = async function () {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        
+        if (!user) {
+            console.log('Please log in as a moderator first');
+            return;
+        }
+        
+        try {
+            const accountsSnap = await get(accountsRef);
+            let migrated = 0;
+            
+            if (accountsSnap.exists()) {
+                const promises = [];
+                
+                accountsSnap.forEach(childSnap => {
+                    const uid = childSnap.key;
+                    const account = childSnap.val() || {};
+                    
+                    if (!account.deleted) {
+                        const searchData = {
+                            username: account.username,
+                            creationDate: account.creationDate,
+                            profile: account.profile || {}
+                        };
+                        
+                        promises.push(set(ref(db, `userSearch/${uid}`), searchData));
+                        migrated++;
+                    }
+                });
+                
+                await Promise.all(promises);
+                console.log(`Successfully migrated ${migrated} users to search index`);
+                await showMessagePopup('Migration Complete', `Successfully migrated ${migrated} users to search index.`);
+            }
+        } catch (err) {
+            console.error('Migration failed:', err);
+            await showMessagePopup('Migration Failed', 'Failed to migrate users. Check console for details.');
+        }
     };
 });
