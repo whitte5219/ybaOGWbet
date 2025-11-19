@@ -728,10 +728,10 @@ nav a.active {
     color: #f44336;
 }
 
-/* ===== NEW: 3-COLUMN USER SEARCH GRID ===== */
+/* ===== UPDATED: 3-COLUMN USER SEARCH GRID - NO PFP IN SEARCH ===== */
 .users-grid-three-column {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
     margin-top: 20px;
 }
@@ -745,8 +745,8 @@ nav a.active {
     border: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
+    justify-content: space-between;
+    min-height: 140px;
 }
 
 .user-search-card:hover {
@@ -755,55 +755,48 @@ nav a.active {
     border-color: rgba(74, 144, 226, 0.3);
 }
 
-.user-search-avatar {
+.user-search-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
     margin-bottom: 15px;
-    position: relative;
 }
 
-.user-search-avatar img {
-    width: 80px;
-    height: 80px;
+.user-avatar-placeholder-search {
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
-    object-fit: cover;
-    background: var(--secondary);
-    border: 2px solid var(--accent);
-}
-
-.user-avatar-placeholder {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: var(--secondary);
-    border: 2px solid var(--accent);
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-    text-align: center;
+    color: white;
+    font-size: 1.2rem;
+    flex-shrink: 0;
 }
 
 .user-search-info {
     flex: 1;
-    width: 100%;
 }
 
 .user-search-info h4 {
-    margin: 0 0 8px 0;
+    margin: 0 0 5px 0;
     color: var(--accent);
     font-size: 1.1rem;
+    font-weight: 600;
 }
 
 .user-search-info p {
-    margin: 0 0 15px 0;
+    margin: 0;
     color: var(--text-secondary);
     font-size: 0.9rem;
 }
 
 .user-search-info .btn {
-    width: auto;
-    padding: 8px 16px;
-    font-size: 0.85rem;
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    margin-top: 10px;
 }
 
 /* ===== ACCOUNT PAGE STYLES ===== */
@@ -1154,7 +1147,7 @@ nav a.active {
     border-color: var(--danger);
 }
 
-/* ===== USER PROFILE POPUP STYLES ===== */
+/* ===== UPDATED: USER PROFILE POPUP STYLES ===== */
 #user-profile-popup .popup-dialog {
     max-width: 500px;
     width: 90%;
@@ -1164,11 +1157,15 @@ nav a.active {
     border-bottom: 1px solid rgba(255,255,255,0.1);
     padding-bottom: 15px;
     margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 #user-profile-popup .popup-header h3 {
     color: var(--accent);
     margin: 0;
+    font-size: 1.3rem;
 }
 
 #close-profile-popup {
@@ -1179,23 +1176,157 @@ nav a.active {
     cursor: pointer;
     padding: 5px;
     transition: var(--transition);
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
 }
 
 #close-profile-popup:hover {
     color: var(--danger);
+    background: rgba(244, 67, 54, 0.1);
     transform: scale(1.1);
 }
 
-#profile-popup-content h4 {
-    color: var(--accent);
-    margin: 15px 0 5px 0;
-    font-size: 1.3rem;
+#profile-popup-content {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 5px;
 }
 
-#profile-popup-content h5 {
-    color: var(--text);
+#profile-popup-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+#profile-popup-content::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 3px;
+}
+
+.profile-popup-avatar {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.profile-popup-avatar img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--secondary);
+    border: 3px solid var(--accent);
+    margin-bottom: 15px;
+}
+
+.profile-popup-avatar-placeholder {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: var(--secondary);
+    border: 3px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    text-align: center;
+    margin: 0 auto 15px auto;
+    flex-direction: column;
+}
+
+.profile-popup-username {
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+.profile-popup-username h4 {
+    margin: 0;
+    color: var(--accent);
+    font-size: 1.4rem;
+}
+
+.profile-popup-join-date {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.profile-popup-join-date p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.profile-popup-bio {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+}
+
+.profile-popup-bio h5 {
     margin: 0 0 10px 0;
+    color: var(--text);
     font-size: 1rem;
+}
+
+.profile-popup-bio p {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    font-size: 0.95rem;
+}
+
+.profile-popup-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.profile-popup-stat {
+    text-align: center;
+    padding: 15px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    transition: var(--transition);
+}
+
+.profile-popup-stat:hover {
+    background: rgba(255,255,255,0.08);
+    transform: translateY(-2px);
+}
+
+.profile-popup-stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--accent);
+    margin-bottom: 5px;
+}
+
+.profile-popup-stat-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.profile-popup-private {
+    text-align: center;
+    padding: 20px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+}
+
+.profile-popup-private i {
+    font-size: 2rem;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.profile-popup-private p {
+    color: var(--text-secondary);
+    margin: 0;
+    font-size: 0.9rem;
 }
 
 /* ===== ACTION BUTTONS IN TABLES ===== */
@@ -1313,6 +1444,25 @@ nav a.active {
 
     .user-search-card {
         padding: 15px;
+        min-height: 120px;
+    }
+
+    .user-search-header {
+        gap: 12px;
+    }
+
+    .user-avatar-placeholder-search {
+        width: 45px;
+        height: 45px;
+        font-size: 1.1rem;
+    }
+
+    .user-search-info h4 {
+        font-size: 1rem;
+    }
+
+    .user-search-info p {
+        font-size: 0.85rem;
     }
 
     /* ===== MOBILE STYLES FOR ACTION BUTTONS ===== */
@@ -1400,6 +1550,15 @@ nav a.active {
     .user-avatar-placeholder {
         width: 60px;
         height: 60px;
+    }
+
+    #user-profile-popup .popup-dialog {
+        width: 95%;
+        margin: 20px;
+    }
+
+    .profile-popup-stats {
+        grid-template-columns: 1fr;
     }
 }
 
